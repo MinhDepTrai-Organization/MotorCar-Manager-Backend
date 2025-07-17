@@ -1,0 +1,48 @@
+<html lang='vi'>
+  <head>
+    <meta charset='UTF-8' />
+    <title>Thông tin yêu cầu báo giá</title>
+    <style>
+      body { font-family: Arial, sans-serif; background-color: #f6f6f6; padding:
+      20px; color: #333; } .email-container { max-width: 600px; margin: 0 auto;
+      background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px
+      rgba(0, 0, 0, 0.1); overflow: hidden; } .email-header { background-color:
+      #c70000; color: #fff; padding: 20px; text-align: center; } .email-content
+      { padding: 20px; } .email-content h3 { margin-top: 0; color: #c70000; }
+      .info-item { margin-bottom: 10px; } .info-item span { font-weight: bold;
+      display: inline-block; width: 120px; } .footer { padding: 15px;
+      background-color: #f2f2f2; text-align: center; font-size: 12px; color:
+      #999; }
+    </style>
+  </head>
+  <body>
+    <div class='email-container'>
+      <div class='email-header'>
+        <h2>🚗 Yêu Cầu Báo Giá Mới</h2>
+        <p>Từ khách hàng Ô Tô Hồng Sơn Star</p>
+      </div>
+      <div class='email-content'>
+        <h3>Thông tin khách hàng:</h3>
+        <div class='info-item'>
+          <span>Họ tên:</span>
+          {{name}}
+        </div>
+        <div class='info-item'>
+          <span>Số điện thoại:</span>
+          {{phone}}
+        </div>
+        <div class='info-item'>
+          <span>Email:</span>
+          {{email}}
+        </div>
+        <div class='info-item'>
+          <span>Ghi chú:</span>
+          {{note}}
+        </div>
+      </div>
+      <div class='footer'>
+        Email này được gửi tự động từ hệ thống. Vui lòng không trả lời lại.
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,112 @@
+name: CI/CD Pipeline for Node.js
+
+on:
+  push:
+    branches:
+      - main  # Triggers on pushes to the main branch
+  pull_request:
+    branches:
+      - main  # Triggers on pull requests to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies
+        run: yarn install  # Use npm install if you're using npm
+
+      - name: Build application
+        run: yarn build  # Adjust if your build command is different
+
+      - name: Copy package.json to dist folder
+        run: cp package.json dist/
+
+      # Optional: Copy yarn.lock if needed
+      # - name: Copy yarn.lock to dist folder
+      #   run: cp yarn.lock dist/
+
+      - name: Check current directory content
+        run: ls -la dist/  # Check the contents of the dist directory
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4 # Updated to
+        with:
+          name: build
+          path: dist/  # Upload all files generated in the dist directory
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Only run on push to main
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4  # Updated to v3
+        with:
+          name: build
+
+      - name: Deploy to EC2
+        run: |
+          echo "Setting up SSH directory"
+          mkdir -p ~/.ssh  # Create the .ssh directory if it doesn't exist
+          echo "Host *" >> ~/.ssh/config
+          echo "  ServerAliveInterval 60" >> ~/.ssh/config
+          echo "  ServerAliveCountMax 30" >> ~/.ssh/config
+
+          echo "Setting up SSH directory"
+          echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.ec2_ip }} >> ~/.ssh/known_hosts
+
+          echo "Contents of ~/.ssh directory:"
+          ls -la ~/.ssh
+
+          echo "Creating destination directory on EC2"
+          ssh -i ~/.ssh/id_rsa ${{ vars.ec2_user }}@${{ vars.ec2_ip }} "mkdir -p /home/${{ vars.ec2_user }}/${{ vars.app_name }}/dist"
+
+          echo "${{ secrets.ENCODED_ENV }}" | base64 --decode > .env
+
+          if [ -f ./.env ]; then
+            echo ".env file successfully moved to dist folder."
+          else
+            echo ".env file not found in dist folder."
+            exit 1
+          fi
+
+          echo "Attempting SCP transfer of all files"
+          rsync -avz -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" ./* ./.env ${{ vars.ec2_user }}@${{ vars.ec2_ip }}:/home/${{ vars.ec2_user }}/${{ vars.app_name }}/dist
+
+          # if [ $? -eq 0 ]; then
+          #   echo "SCP transfer completed successfully"
+          # else
+          
+          #   echo "SCP transfer failed"
+          #   exit 1
+          # fi
+
+          echo "Verifying transferred files"
+          ssh -i ~/.ssh/id_rsa ${{ vars.ec2_user }}@${{ vars.ec2_ip }} << 'EOF'
+            echo "Contents of app directory on EC2:"
+            ls -R /home/${{ vars.ec2_user }}/${{ vars.app_name }}
+          EOF
+
+          echo "Continuing with deployment"
+          ssh -i ~/.ssh/id_rsa ${{ vars.ec2_user }}@${{ vars.ec2_ip }} << 'EOF'
+            cd /home/${{ vars.ec2_user }}/${{ vars.app_name }}
+            cd /home/${{ vars.ec2_user }}/${{ vars.app_name }}/dist
+            rm -rf node_modules 
+            echo "Installing dependencies..."
+            yarn install || { echo "Failed to install dependencies"; exit 1; }
+            yarn add lodash
+            pm2 restart all || pm2 start main.js --name ${{ vars.app_name }}
+          EOF
+        

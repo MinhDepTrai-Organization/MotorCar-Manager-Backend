@@ -1,0 +1,21 @@
+# Ignore development/config files
+
+package-lock.json
+.eslintrc.js
+.gitignore
+.nvrmc
+.prettierrc
+.dockerignore
+\*.yml
+Dockerfile
+\*.txt
+\*.md
+
+# Ignore node_modules in host environment
+
+node_modules/
+
+# Ignore hidden files and OS-specific files
+
+.git
+.DS_Store
