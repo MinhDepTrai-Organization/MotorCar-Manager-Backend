@@ -164,7 +164,6 @@ import { ContactModule } from './modules/contact/contact.module';
     AppService,
     {
       provide: APP_GUARD,
-
       useClass: JwtAuthGuard,
     },
     {

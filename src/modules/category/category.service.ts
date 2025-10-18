@@ -20,33 +20,38 @@ export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
-    private cloudinaryService: CloudinaryService,
-    @InjectRepository(Brand)
-    private brandRepository: Repository<Brand>,
   ) {}
   async createCategory(categories) {
     try {
-      console.log(categories);
-      const { name, parentCategoryId, description, slug } = categories;
-      const category = new Category();
-      category.name = name;
-      category.description = description;
-      category.slug = slug;
-
-      if (parentCategoryId) {
-        const parentCategory = await this.categoryRepository.findOne({
-          where: { id: parentCategoryId }, // Thay thế cách truyền trực tiếp ID
-        });
-
-        if (parentCategory) {
-          category.parentCategory = parentCategory;
-        } else {
-          throw new NotFoundException('Parent category not found');
-        }
-      }
-
-      // Lưu danh mục mới
-      return await this.categoryRepository.save(category);
+      const { name, parentCategoryId, description, slug, type } = categories;
+      return await this.categoryRepository.manager.transaction(
+        async (manager) => {
+          const category = manager.create(Category, {
+            name,
+            description,
+            type,
+            slug,
+          });
+          if (parentCategoryId) {
+            const parentCategory = await manager.findOne(Category, {
+              where: { id: parentCategoryId },
+            });
+            if (parentCategory) {
+              category.parentCategory = parentCategory;
+            } else {
+              throw new NotFoundException(
+                `Parent category with ID ${parentCategoryId} not found`,
+              );
+            }
+          }
+          const createdCategory = await manager.save(category);
+          return {
+            message: 'Tạo danh mục thành công',
+            data: createdCategory,
+            status: 200,
+          };
+        },
+      );
     } catch (error) {
       console.error('Error creating category:', error);
 
@@ -201,48 +206,58 @@ export class CategoryService {
   }
 
   // Phương thức cập nhật danh mục
-  async updateCategory(
-    id: string,
-    updateCategoryDto: any,
-  ): Promise<{ message: string; data?: Category }> {
+  async updateCategory(id: string, updateCategoryDto: any) {
     try {
-      // Tìm danh mục cần cập nhật
-      const category = await this.categoryRepository.findOne({
-        where: { id },
-        relations: ['children'],
-      });
-      //return category;
-      if (!category) {
-        // Thay vì ném ra exception, trả về lỗi với HttpException
-        throw new NotFoundException('Không tìm thấy danh mục với ID này.');
-      }
-      // Cập nhật thông tin danh mục
-      category.name = updateCategoryDto.name || category.name;
-      // Cập nhật thông tin danh mục
-      category.description =
-        updateCategoryDto.description || category.description;
-      category.slug = updateCategoryDto.slug || category.slug;
-      // Nếu có parentCategoryId, chúng ta sẽ cập nhật mối quan hệ cha-con
-      if (updateCategoryDto.parentCategoryId) {
-        const parentCategory = await this.categoryRepository.findOne({
-          where: { id: updateCategoryDto.parentCategoryId },
-        });
-        if (parentCategory) {
-          category.parentCategory = parentCategory;
-        } else {
-          throw new NotFoundException('Parent Category not found');
-        }
-      } else {
-        category.parentCategory = null;
-      }
+      return await this.categoryRepository.manager.transaction(
+        async (manager) => {
+          const category = await manager.findOne(Category, {
+            where: { id },
+          });
+          if (!category) {
+            throw new NotFoundException(`Không tìm thấy danh mục với ID ${id}`);
+          }
 
-      // Lưu lại thay đổi
+          const allowedFields = ['name', 'description', 'slug', 'type'];
+          const updatedData = Object.keys(updateCategoryDto)
+            .filter((key) => allowedFields.includes(key))
+            .reduce((obj, key) => {
+              obj[key] = updateCategoryDto[key] ?? category[key];
+              return obj;
+            }, {} as Partial<Category>);
+          Object.assign(category, { ...updatedData });
 
-      const updatedCategory = await this.categoryRepository.save(category);
-      return {
-        message: 'Cập nhật thành công ',
-        data: updatedCategory,
-      };
+          // Xử lý danh mục cha
+          if (updateCategoryDto.parentCategoryId !== undefined) {
+            if (
+              updateCategoryDto.parentCategoryId === null ||
+              updateCategoryDto.parentCategoryId === ''
+            ) {
+              category.parentCategory = null;
+            } else {
+              const parentCategory = await manager.findOne(Category, {
+                where: { id: updateCategoryDto.parentCategoryId },
+              });
+              if (!parentCategory) {
+                throw new NotFoundException(
+                  `Danh mục cha với ID ${updateCategoryDto.parentCategoryId} không tìm thấy`,
+                );
+              }
+              if (parentCategory.id === category.id) {
+                throw new BadRequestException(
+                  'Danh mục không thể là cha của chính nó',
+                );
+              }
+              category.parentCategory = parentCategory;
+            }
+          }
+          const updatedCategory = await manager.save(category);
+          return {
+            message: 'Cập nhật danh mục thành công',
+            data: updatedCategory,
+            status: 200,
+          };
+        },
+      );
     } catch (error) {
       throw error;
     }
@@ -313,3 +328,37 @@ export class CategoryService {
       .getMany(); // Lấy tất cả danh mục (danh sách) không bị xóa mềm
   }
 }
+
+// Tìm danh mục cần cập nhật
+// const category = await this.categoryRepository.findOne({
+//   where: { id },
+//   relations: ['children'],
+// });
+// //return category;
+// if (!category) {
+//   // Thay vì ném ra exception, trả về lỗi với HttpException
+//   throw new NotFoundException('Không tìm thấy danh mục với ID này.');
+// }
+// // Cập nhật thông tin danh mục
+// category.name = updateCategoryDto.name || category.name;
+// // Cập nhật thông tin danh mục
+// category.description =
+//   updateCategoryDto.description || category.description;
+// category.slug = updateCategoryDto.slug || category.slug;
+// // Nếu có parentCategoryId, chúng ta sẽ cập nhật mối quan hệ cha-con
+// if (updateCategoryDto.parentCategoryId) {
+//   const parentCategory = await this.categoryRepository.findOne({
+//     where: { id: updateCategoryDto.parentCategoryId },
+//   });
+//   if (parentCategory) {
+//     category.parentCategory = parentCategory;
+//   } else {
+//     throw new NotFoundException('Parent Category not found');
+//   }
+// } else {
+//   category.parentCategory = null;
+// }
+
+// // Lưu lại thay đổi
+
+// const updatedCategory = await this.categoryRepository.save(category);

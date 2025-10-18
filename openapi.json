@@ -13025,12 +13025,22 @@
             "type": "number",
             "example": null,
             "description": "ID của danh mục cha nếu có. Nếu là danh mục cha, giá trị là null. Nếu là danh mục con của thằng khác thì thêm Id thằng cha đó."
+          },
+          "type": {
+            "type": "string",
+            "example": "car",
+            "enum": [
+              "car",
+              "motorbike"
+            ],
+            "description": "Loại sản phẩm thuộc danh mục này"
           }
         },
         "required": [
           "name",
           "slug",
-          "description"
+          "description",
+          "type"
         ]
       },
       "CreateResponseCategoryDto": {
@@ -13214,13 +13224,23 @@
             "type": "number",
             "description": "ID của category cha nếu có  of category - optional",
             "example": 16
+          },
+          "type": {
+            "type": "string",
+            "example": "car",
+            "enum": [
+              "car",
+              "motorbike"
+            ],
+            "description": "Loại sản phẩm thuộc danh mục này"
           }
         },
         "required": [
           "name",
           "slug",
           "description",
-          "parentCategoryId"
+          "parentCategoryId",
+          "type"
         ]
       },
       "CreateProductSpecificationDto": {

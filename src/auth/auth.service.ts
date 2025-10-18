@@ -160,13 +160,13 @@ export class AuthService {
         username: user.username,
         email: user.email,
         id: user.id,
-        role: user.Roles[0].name,
+        role: user.Roles[0]?.name,
       };
 
       const refreshPayload = {
         id: user.id,
         email: user.email,
-        role: user.Roles[0].name,
+        role: user.Roles[0]?.name,
         username: user.username,
       };
       return {
@@ -180,13 +180,13 @@ export class AuthService {
         userId: user.id,
         username: user.username,
         email: user.email,
-        Roles: user.Roles[0].name,
+        Roles: user.Roles[0]?.name,
         avatarUrl: user.avatarUrl,
         age: user.age,
         address: user.address,
         phoneNumber: user.phoneNumber,
         gender: user.gender,
-        permissions: user.Roles[0].permissions,
+        permissions: user.Roles[0]?.permissions,
       };
     } catch (e) {
       console.error('Error in loginAdmin:', e);
