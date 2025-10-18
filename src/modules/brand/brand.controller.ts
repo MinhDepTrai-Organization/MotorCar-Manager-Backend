@@ -54,7 +54,6 @@ export class BrandController {
   @Post()
   @ResponseMessage('Tạo mới thành công')
   create(@Body() createBrandDto: CreateBrandDto) {
-    console.log(createBrandDto);
     return this.brandService.create(createBrandDto);
   }
   @ApiOperation({

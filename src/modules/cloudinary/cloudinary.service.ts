@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -33,6 +34,7 @@ export class CloudinaryService {
 
       streamifier.createReadStream(file.buffer).pipe(uploadStream);
     }).catch((error) => {
+      console.error('Cloudinary upload error:', error);
       throw new InternalServerErrorException(
         'File upload failed',
         error.message,

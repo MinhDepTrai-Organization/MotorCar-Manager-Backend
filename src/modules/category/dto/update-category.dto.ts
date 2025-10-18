@@ -1,6 +1,14 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { CreateCategoryDto } from './create-category.dto';
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Enum } from '@solana/web3.js';
+import { ProductType } from 'src/constants';
 
 class Category {
   @IsNotEmpty()
@@ -16,7 +24,7 @@ export class UpdateCategoryDto {
     example: 'Xe con con',
   })
   name: string;
-  
+
   @ApiProperty({
     example: 'slug',
     description: 'slug',
@@ -24,8 +32,6 @@ export class UpdateCategoryDto {
   @IsString()
   @IsNotEmpty()
   slug: string;
-
-
 
   @IsOptional()
   @ApiProperty({ description: 'description', example: 'description' })
@@ -38,5 +44,15 @@ export class UpdateCategoryDto {
   parentCategoryId: number; // ID của category cha nếu có
   @IsOptional()
   @IsArray()
-  children?: Category[]; // Chứa danh sách danh mục con (có thể chứa cả id và tên
+  children?: Category[];
+
+  @ApiProperty({
+    type: Enum,
+    example: ProductType.CAR,
+    enum: ProductType,
+    description: 'Loại sản phẩm thuộc danh mục này',
+  })
+  @IsEnum(ProductType)
+  @IsNotEmpty()
+  type: ProductType;
 }

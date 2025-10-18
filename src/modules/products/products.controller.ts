@@ -361,7 +361,6 @@ export class ProductsController {
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'files', maxCount: 5 }, // Allows up to 5 avatar images
-      { name: 'backgrounds', maxCount: 5 }, // Allows up to 5 background images
     ]),
   )
   @ApiConsumes('multipart/form-data')
@@ -398,6 +397,7 @@ export class ProductsController {
     const { folder } = body;
     return this.productsService.uploadMultiImage(files, folder);
   }
+
   /////// tìm kiếm SKU  theo idoptionvalue
   @ApiOperation({
     summary: 'Tìm kiếm SKU theo id ',

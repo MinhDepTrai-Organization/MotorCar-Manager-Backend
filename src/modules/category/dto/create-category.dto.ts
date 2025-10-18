@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Enum } from '@solana/web3.js';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { ProductType } from 'src/constants';
 
 export class CreateCategoryDto {
   @ApiProperty({
@@ -34,4 +42,13 @@ export class CreateCategoryDto {
   })
   @IsOptional()
   parentCategoryId?: number;
+
+  @ApiProperty({
+    type: Enum,
+    example: ProductType.CAR,
+    enum: ProductType,
+    description: 'Loại sản phẩm thuộc danh mục này',
+  })
+  @IsEnum(ProductType)
+  type: ProductType;
 }
