@@ -13,9 +13,6 @@ import {
 export class CreateAuthDto {}
 
 export class UserInfo {
-
-
-
   @ApiProperty({
     example: 'john.doe@example.com',
     description: 'Tên người dùng',
@@ -98,11 +95,9 @@ export class getAccountDto {
     example: 'ngodinhphuoc100@gmail.com',
     description: 'Tên người dùng',
   })
-  @IsNotEmpty({ message: 'Email should not be empty' })
-  @IsEmail({}, { message: 'Email must be a valid email address' })
+  @IsNotEmpty({ message: 'Email không nên để trống' })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
   email: string;
-
-
 }
 
 export class ActiveAcount {

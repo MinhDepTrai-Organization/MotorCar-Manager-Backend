@@ -1,4 +1,5 @@
 import * as CryptoJS from 'crypto-js';
+import appConfig from 'src/config/app.config';
 import { v4 as uuidv4 } from 'uuid';
 // export const generateMac = (data: string, key: string) => {
 //   const mac = CryptoJS.HmacSHA256(data, key).toString();

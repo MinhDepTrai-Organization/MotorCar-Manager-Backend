@@ -67,10 +67,10 @@ export class Customer {
   @Column({ type: 'enum', enum: ['male', 'female', 'other'], default: 'other' })
   gender: 'male' | 'female' | 'other';
 
-  @Column()
+  @Column({ nullable: true })
   codeId: string;
 
-  @Column()
+  @Column({ nullable: true })
   codeExprided: Date;
 
   @OneToMany(() => Blog, (blog: Blog) => blog.customer)

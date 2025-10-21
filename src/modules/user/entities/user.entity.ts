@@ -41,10 +41,14 @@ export class User extends Base {
   @Column({ default: false })
   isActice: boolean;
 
-  @Column()
+  @Column({
+    nullable: true,
+  })
   codeId: string;
 
-  @Column()
+  @Column({
+    nullable: true,
+  })
   codeExprided: Date;
 
   @OneToMany((type) => Import, (element) => element.user)

@@ -1,11 +1,16 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateOptionDto } from './dto/create-option.dto';
 import { UpdateOptionDto } from './dto/update-option.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Option } from './entities/option.entity';
 import { ILike, Repository } from 'typeorm';
 import { Message } from '@solana/web3.js';
-import typeorm from 'src/config/typeorm';
+import typeorm from 'src/config/typeorm.config';
 
 @Injectable()
 export class OptionService {
@@ -16,7 +21,7 @@ export class OptionService {
   async create(createOptionDto: CreateOptionDto) {
     const name = createOptionDto.name;
     const ExistName = await this.optionRepository.findOne({
-    // field : data 
+      // field : data
       where: { name: ILike(name) },
     });
     if (ExistName) {
@@ -62,21 +67,19 @@ export class OptionService {
 
   async update(id: string, updateOptionDto: UpdateOptionDto) {
     const option = await this.optionRepository.findOne({ where: { id } });
-    const {name }= updateOptionDto
+    const { name } = updateOptionDto;
     if (!option) {
       throw new NotFoundException({
         status: 404,
         message: 'Thuộc tính không tồn tại',
       });
     }
-    // check trùng 
-    const existingOption = await this.optionRepository.findOne(
-      {
-        where : {name : ILike(name)} // ko phân biệt hoa thuong
-      }
-    )
-    if(existingOption){
-       throw new HttpException('Tên thuộc tính đã tồn tại', HttpStatus.CONFLICT); // 409
+    // check trùng
+    const existingOption = await this.optionRepository.findOne({
+      where: { name: ILike(name) }, // ko phân biệt hoa thuong
+    });
+    if (existingOption) {
+      throw new HttpException('Tên thuộc tính đã tồn tại', HttpStatus.CONFLICT); // 409
     }
 
     // Cập nhật dữ liệu

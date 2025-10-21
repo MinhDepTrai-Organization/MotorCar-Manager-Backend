@@ -6,10 +6,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './auth/passport/jwt-auth.guard';
+import { JwtAuthGuard } from './auth/gaurds/jwt-auth.guard';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { MarketCommentModule } from './modules/market-comment/market-comment.module';
-import typeorm from './config/typeorm';
+import googleOauthConfig from './config/google-oauth.config';
+import typeorm from './config/typeorm.config';
 import { BlogModule } from './modules/blog/blog.module';
 import { BlockUserModule } from './modules/block-user/block-user.module';
 import { CategoryModule } from './modules/category/category.module';
@@ -66,19 +67,28 @@ import { Reflector } from '@nestjs/core';
 import { PayosModule } from './modules/payos/payos.module';
 import { PaymentTransactionModule } from './modules/payment_transaction/payment_transaction.module';
 import { ContactModule } from './modules/contact/contact.module';
+import jwtConfig from './config/jwt.config';
+import refreshJwtConfig from './config/refresh-jwt.config';
+import mailerConfig from './config/mailer.config';
+import typeormConfig from './config/typeorm.config';
+import appConfig from './config/app.config';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
+      envFilePath: '.env',
       isGlobal: true,
-      load: [typeorm],
+      load: [
+        typeorm,
+        googleOauthConfig,
+        jwtConfig,
+        refreshJwtConfig,
+        mailerConfig,
+        appConfig,
+      ],
       expandVariables: true,
     }),
-    TypeOrmModule.forRootAsync({
-      useFactory: async (configService: ConfigService) =>
-        configService.get('typeorm'),
-      inject: [ConfigService],
-    }),
+    TypeOrmModule.forRootAsync(typeormConfig.asProvider()),
     AuthModule,
     UserModule,
     CloudinaryModule,
@@ -113,33 +123,7 @@ import { ContactModule } from './modules/contact/contact.module';
     RoleModule,
     ReceiveAddressModule,
     SpecificationModule,
-    MailerModule.forRootAsync({
-      useFactory: async (configService: ConfigService) => ({
-        transport: {
-          host: configService.get<string>('EMAILHOST'),
-          secure: false,
-          auth: {
-            user: configService.get<string>('SENDER_EMAIL'),
-            pass: configService.get<string>('PASSWORD_EMAIL'),
-          },
-          tls: {
-            rejectUnauthorized: false, // Bỏ qua xác thực TLS
-          },
-        },
-
-        // báo cáo địa chỉ sử dụng
-        template: {
-          // dirname : thư muc root là src
-          dir: join(__dirname, '/mail/templates'),
-          adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
-          },
-          preview: true,
-        },
-      }),
-      inject: [ConfigService],
-    }),
+    MailerModule.forRootAsync(mailerConfig.asProvider()),
     BlogCategoriesModule,
     DeliveryMethodModule,
     ProvinceModule,

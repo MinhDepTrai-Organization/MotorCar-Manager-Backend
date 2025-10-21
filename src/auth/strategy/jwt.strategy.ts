@@ -1,10 +1,11 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable } from '@nestjs/common';
+import { ConfigType } from '@nestjs/config';
 import { UserService } from 'src/modules/user/user.service';
 import { RoleEnum } from 'src/constants/role.enum';
 import { CustomersService } from 'src/modules/customers/customers.service';
+import jwtConfig from 'src/config/jwt.config';
 export type PayloadType = {
   username: string;
   email: string;
@@ -30,13 +31,15 @@ export type UserValidationType = {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private configService: ConfigService,
+    @Inject(jwtConfig.KEY)
+    private jwtConfiguration: ConfigType<typeof jwtConfig>,
     private userService: UserService,
     private CustomerService: CustomersService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: configService.get<string>('JWT_SECRET'),
+      secretOrKey: jwtConfiguration.secret,
+      ignoreExpiration: false,
     });
   }
 
@@ -49,7 +52,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return {
         username: payload.username,
         email: payload.email,
-
         id: payload.id,
         role: role?.name,
         permissions: role?.permissions ?? [],

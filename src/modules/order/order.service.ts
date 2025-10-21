@@ -50,7 +50,7 @@ import { ZaloPayCheckOrderStatus } from 'src/constants/zalo-payment.enum';
 import { PaymentMethodOption } from '../payment_method_option/entities/payment_method_option.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PayosService } from '../payos/payos.service';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 import { RoleEnum } from 'src/constants/role.enum';
 
 export const getMonthsInRange = (

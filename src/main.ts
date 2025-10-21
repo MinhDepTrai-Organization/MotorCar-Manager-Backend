@@ -1,6 +1,6 @@
 import { HttpAdapterHost, NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Tag } from './constants/api-tag.enum';
@@ -8,10 +8,12 @@ import { AllExceptionsFilter } from './exception/exception.filter';
 import { validationPipeExceptionFactory } from './helpers/format-error';
 import { TransformInterceptor } from './interceptor/transfrom.interceptor';
 import { writeFileSync } from 'fs';
+import { APP_CONFIG_TOKEN, AppConfig } from './config/app.config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const configServer = app.get(ConfigService);
-  const port = configServer.get('PORT') || 9000;
+  const configService = app.get(ConfigService);
+  const appConfig = configService.get<AppConfig>(APP_CONFIG_TOKEN);
+  const port = configService.get('PORT') || 9000;
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalPipes(
     new ValidationPipe({
@@ -27,7 +29,6 @@ async function bootstrap() {
   // Lấy Reflector từ app container và truyền vào interceptor
   const reflector = app.get(Reflector);
   app.useGlobalInterceptors(new TransformInterceptor(reflector));
-  // app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new AllExceptionsFilter(httpAdapter));
   app.setGlobalPrefix('api/v1', { exclude: [''] });
   // const allowedOrigins = [
@@ -66,10 +67,8 @@ async function bootstrap() {
       'https://editor.swagger.io/?_gl=1*1xyqdcp*_gcl_au*NTg5MjIwNjEuMTc0MDE3NjY3Ng..',
     )
     .addTag('HS')
-    .addServer(`http://localhost:${port}`)
-    .addServer(`${process.env.DEPLOYMENT_URL}`)
-    .addServer(`${process.env.BASE_TEST_URL}`)
-    .addServer(`${process.env.DEPLOYMENT_URL_V2}`)
+    .addServer(appConfig.BE_URL)
+    .addServer(appConfig.DEPLOY_BE_URL_NGROK)
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

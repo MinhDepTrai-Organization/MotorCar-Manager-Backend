@@ -28,7 +28,7 @@ import QueryExportDto from './dto/query-export-dto';
 import { convertToTimeStampPostgres } from 'src/helpers/datetime.format';
 import { filterEmptyFields } from 'src/helpers/utils';
 import { DetailImportService } from '../detail_import/detail_import.service';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 import { RoleEnum } from 'src/constants/role.enum';
 
 @Injectable()

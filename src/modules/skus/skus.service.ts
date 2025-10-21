@@ -21,7 +21,7 @@ import dayjs from 'dayjs';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import GetSkusByOptionValuesIdsDto from './dto/getSkusByOptionValuesIds.dto';
 import GetByIdsDto from './dto/getByIds.dto';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 
 @Injectable()
 export class SkusService {
