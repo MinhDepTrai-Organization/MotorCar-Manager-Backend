@@ -3,7 +3,6 @@ deployment:
   tasks:
     # 1️⃣ Đặt biến môi trường
     - export DEPLOYPATH=/home/xnzbgatp/backend-nestjs
-    - export NODEBIN=/home/xnzbgatp/nodevenv/backend-nestjs/20/bin
 
     # 2️⃣ Kích hoạt môi trường Node.js
     - /bin/echo "🌱 Activating Node.js environment..."
@@ -22,7 +21,7 @@ deployment:
 
     # 6️⃣ Build NestJS project
     - /bin/echo "🏗️ Building NestJS project..."
-    - $NODEBIN/npm run build
+    - $NODEBIN/npm run deploy
 
     # 7️⃣ Restart hoặc khởi động bằng PM2
     - /bin/echo "🚀 Restarting NestJS app with PM2..."
