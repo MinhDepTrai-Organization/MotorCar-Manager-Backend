@@ -1,21 +1,24 @@
 ---
 deployment:
   tasks:
-    # 1️⃣ Xác định thư mục đích (nơi app đang chạy thật)
+    # 1️⃣ Định nghĩa các đường dẫn
+    - export REPOPATH=/home/xnzbgatp/repositories/backend-nestjs
     - export DEPLOYPATH=/home/xnzbgatp/backend-nestjs
 
-    # 2️⃣ Kích hoạt môi trường Node.js đúng phiên bản
+    # 2️⃣ Kích hoạt môi trường Node.js
     - source /home/xnzbgatp/nodevenv/backend-nestjs/20/bin/activate
 
-    # 3️⃣ Cài dependency (nếu cần, bỏ qua devDependencies)
-    - cd /home/xnzbgatp/repositories/backend-nestjs
+    # 3️⃣ Di chuyển vào thư mục repo để thực thi các lệnh npm
+    - cd $REPOPATH
     - npm install
-
-    # 4️⃣ Build lại NestJS (từ TypeScript sang JavaScript)
     - npm run build
 
-    # 5️⃣ Copy file build & cấu hình sang thư mục deploy thật
+    # 4️⃣ Sao chép các file cần thiết từ repo sang thư mục deploy
     - /bin/cp -R dist $DEPLOYPATH/
     - /bin/cp package.json $DEPLOYPATH/
     - /bin/cp -R node_modules $DEPLOYPATH/
-    - /bin/cp -R src $DEPLOYPATH/
+
+    # 5️⃣ Khởi động lại ứng dụng Node.js thông qua cPanel
+    # Bạn có thể thực hiện thủ công hoặc thêm một lệnh restart tại đây.
+    # Một số cấu hình hosting cho phép bạn chạy lệnh sau:
+    # - /usr/sbin/passenger-config restart-app --ignore-app-not-running $DEPLOYPATH
