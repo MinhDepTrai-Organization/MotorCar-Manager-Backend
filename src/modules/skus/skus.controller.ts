@@ -25,7 +25,7 @@ import { Public } from 'src/decorators/public-route';
 import { ResponseMessage } from 'src/decorators/response_message.decorator';
 import QuerySkusDto from './dto/query-skus.dto';
 import GetSkusByOptionValuesIdsDto from './dto/getSkusByOptionValuesIds.dto';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 import { User } from 'src/decorators/current-user';
 
 @ApiTags(Tag.SKU)

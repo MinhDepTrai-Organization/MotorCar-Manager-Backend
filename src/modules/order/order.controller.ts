@@ -44,7 +44,7 @@ import RevenueProfitStaticsDto, {
   EnumTypeOfTimeStatistics,
 } from './dto/revenue-profit-statics.dto';
 import dayjs from 'dayjs';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 
 @Controller('order')
 @ApiBearerAuth()

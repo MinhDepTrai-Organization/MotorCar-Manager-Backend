@@ -24,7 +24,7 @@ import { Roles } from 'src/decorators/role-route';
 import { RoleEnum } from 'src/constants/role.enum';
 import { Response_AddCart_DTO } from './dto/response-cart.dto';
 import { ResponseMessage } from 'src/decorators/response_message.decorator';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 
 @ApiTags(Tag.CART)
 @ApiBearerAuth()

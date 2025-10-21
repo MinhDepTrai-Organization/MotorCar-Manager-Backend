@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Cart } from './entities/cart.entity';
 import { Repository } from 'typeorm';
 import { CartItem } from '../cart_item/entities/cart_item.entity';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 import { RoleEnum } from 'src/constants/role.enum';
 
 @Injectable()

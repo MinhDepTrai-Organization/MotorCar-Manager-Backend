@@ -19,7 +19,7 @@ import {
 import { CreatePayOsOrderDto } from './dto/create-order-payos.dto';
 import { User } from 'src/decorators/current-user';
 import { Tag } from 'src/constants/api-tag.enum';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 import CancelOrderPayosDto from './dto/cancel-order-payos.dto';
 import ConfirmWebhookPayOsDto from './dto/confirm-webhook-payos.dto';
 import { Public } from 'src/decorators/public-route';

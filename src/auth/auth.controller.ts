@@ -12,16 +12,14 @@ import {
 import { AuthService } from './auth.service';
 import {
   ActiveAcount,
-  ChangeAcount,
   Email,
   getAccountDto,
   LoginDto,
   UserInfo,
 } from './dto/create-auth.dto';
-import { RefreshAuthGuard } from './passport/refresh-auth.guard';
+import { RefreshAuthGuard } from './gaurds/refresh-auth.guard';
 import { Public } from 'src/decorators/public-route';
-import { MailerService } from '@nestjs-modules/mailer';
-import { GoogleAuthGuard } from './gaurds/Gaurds';
+import { GoogleAuthGuard } from './gaurds/google-oauth.guard';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -34,7 +32,11 @@ import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from 'src/decorators/current-user';
 import { ResponseMessage } from 'src/decorators/response_message.decorator';
-import { InfoContact } from 'src/modules/products/dto/info.dto';
+import EmailDto from './dto/email-format.dto';
+import { ConfigService } from '@nestjs/config';
+import { APP_CONFIG_TOKEN, AppConfig } from 'src/config/app.config';
+import ResetPassword from './dto/reset-password.dto';
+import VerifyResetPasswordDto from './dto/verify-reset-password.dto';
 interface User {
   email: string;
   firstName: string;
@@ -48,7 +50,7 @@ interface User {
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly mailerService: MailerService,
+    private readonly configService: ConfigService,
   ) {}
 
   @ApiOperation({
@@ -126,14 +128,13 @@ export class AuthController {
   @Get('refresh')
   @HttpCode(HttpStatus.CREATED)
   handleRefreshToken(@Req() req) {
-    //return req.user;
     return this.authService.refreshAccessToken(req.user);
   }
 
   // tạo người dùng ở đây
   @ApiOperation({
     summary:
-      'Tạo cho customer thôi . Register  cho customer. Thành công trả về Id custommer á  ',
+      'Tạo cho customer thôi. Register cho customer. Thành công trả về Id custommer',
   })
   @ApiResponse({ status: 200, description: 'User info is exist in system' })
   @ApiResponse({
@@ -146,19 +147,17 @@ export class AuthController {
     return this.authService.register(userInfo, res);
   }
   @ApiOperation({
-    summary: 'kích hoạt tài khoản  = mã code 4 số khi đăng kí ,',
+    summary: 'kích hoạt tài khoản bằng mã code',
   })
   @ApiResponse({ status: 500, description: 'Internal server' })
   @Post('check-code')
   checkCode(@Body() dataActive: ActiveAcount) {
-    //console.log(userInfo);
     return this.authService.handleActive(dataActive);
   }
 
   @Post('retry-active')
   @ApiOperation({
-    summary:
-      'kích hoạt lại tài khoản khi mã code hết hạn or ở trang login chưa kick hoạt  = cách gửi lại (resend )email , để trả về mã code. Sài ở trang login khi tk chưa kích hoạt hoặc hết hạn ',
+    summary: 'Gửi lại mã kích hoạt tài khoản vào gmail của khách hàng',
   })
   @ApiBody({
     description:
@@ -198,12 +197,12 @@ export class AuthController {
     return this.authService.retryPassword(email);
   }
 
-  @ApiResponse({ status: 500, description: 'Internal server' })
-  @ApiOperation({ summary: 'Thay đổi mật khẩu mới khi chưa login' })
-  @Post('change-password')
-  changePassword(@Body() dataActive: ChangeAcount) {
-    return this.authService.changePassword(dataActive);
-  }
+  // @ApiResponse({ status: 500, description: 'Internal server' })
+  // @ApiOperation({ summary: 'Thay đổi mật khẩu mới khi chưa login' })
+  // @Post('change-password')
+  // changePassword(@Body() dataActive: ChangeAcount) {
+  //   return this.authService.changePassword(dataActive);
+  // }
 
   @Post('admin/retryPassword')
   @ApiOperation({
@@ -226,25 +225,22 @@ export class AuthController {
     return this.authService.retryPasswordAdmin(email);
   }
 
-  @ApiResponse({ status: 500, description: 'Internal server' })
-  @ApiOperation({ summary: 'Thay đổi mật khẩu mới khi chưa login' })
-  @Post('admin/change-password')
-  changePassưordAdmin(@Body() dataActive: ChangeAcount) {
-    return this.authService.changePasswordAdmin(dataActive);
-  }
+  // @ApiResponse({ status: 500, description: 'Internal server' })
+  // @ApiOperation({ summary: 'Thay đổi mật khẩu mới khi chưa login' })
+  // @Post('admin/change-password')
+  // changePassưordAdmin(@Body() dataActive: ChangeAcount) {
+  //   return this.authService.changePasswordAdmin(dataActive);
+  // }
 
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({
     summary:
-      'Google Login : có thể gõ theo đường dẫn trên google để chuyển hướng đến google',
+      'Google Login: có thể gõ theo đường dẫn trên google để chuyển hướng đến google',
     description:
       'Redirects the user to Google for authentication. This endpoint initiates the login process by redirecting the user to Google’s authentication page.',
   })
-  async googleLogin() {
-    console.log('Redirecting to Google...');
-    return { message: 'Redirecting to Google...' };
-  }
+  googleLogin() {}
 
   @ApiOperation({
     summary:
@@ -260,16 +256,9 @@ export class AuthController {
   })
   async googleCallback(@Req() req, @Res() res: Response) {
     const user = await this.authService.validateGoogleUser(req.user);
-    // Redirect to frontend với access token, refresh token và thông tin user
-    console.log(user);
-    //  const frontendURL = `http://localhost:3000/success?token=${user.access_token}`;
-
-    const frontendURL = `${process.env.FE_DEPLOY}/success?token=${user.access_token}`;
-    // return res.redirect(
-    //   `${frontendURL}?access_token=${user.access_token}&refresh_token=${user.refresh_token}&user=${encodeURIComponent(JSON.stringify(user.users))}`,
-    // );
-
-    return res.redirect(frontendURL);
+    const appConfig = this.configService.get<AppConfig>(APP_CONFIG_TOKEN);
+    let Fe_Url = `${appConfig.FE_URL_USER}/success?token=${user.access_token}`;
+    return res.redirect(Fe_Url);
   }
 
   @Get('/facebook')
@@ -300,18 +289,52 @@ export class AuthController {
   }
 
   /////// Liên hệ gửi mail về admin và phản hồi khách hàng
-  @Public()
-  @ApiOperation({
-    summary: 'Liên hệ gửi mail về admin và phản hồi khách hàng ',
-  })
-  @Post('contact')
-  @ResponseMessage('Báo giá thành công. Chúng tôi sẽ liên hệ với bạn sớm nhất')
-  async sendMailAdmin_ResponseCustomer(@Body() info: InfoContact) {
-    return await this.authService.sendMailAdmin_ResponseCustomer(info);
-  }
-  // @Cron(CronExpression.EVERY_30_SECONDS)
-  // handleCron() {
-  //   console.log('Called every 30 seconds');
-
+  // @Public()
+  // @ApiOperation({
+  //   summary: 'Liên hệ gửi mail về admin và phản hồi khách hàng ',
+  // })
+  // @Post('contact')
+  // @ResponseMessage('Báo giá thành công. Chúng tôi sẽ liên hệ với bạn sớm nhất')
+  // async sendMailAdmin_ResponseCustomer(@Body() info: InfoContact) {
+  //   return await this.authService.sendMailAdmin_ResponseCustomer(info);
   // }
+
+  @ApiOperation({
+    summary: 'Quên mật khẩu cho tài khoản',
+  })
+  @Post('admin/forgot-password')
+  @ApiBody({
+    type: EmailDto,
+    required: true,
+    description: 'Email đăng nhập của tài khoản',
+  })
+  async forgotPassword(@Body() body: EmailDto) {
+    return await this.authService.forgotPassword({ email: body.email });
+  }
+
+  @ApiOperation({
+    summary: 'Xác thực reset password cho admin',
+  })
+  @Post('admin/verify-reset-password')
+  @ApiBody({
+    type: VerifyResetPasswordDto,
+    required: true,
+    description: 'Email đăng nhập của tài khoản',
+  })
+  async verifyResetPasswordToken(@Body() body: VerifyResetPasswordDto) {
+    return await this.authService.verifyResetPasswordToken({
+      ...body,
+    });
+  }
+
+  @ApiOperation({
+    summary: 'Thay đổi lại mật khẩu',
+  })
+  @Post('admin/reset-password')
+  async resetPassword(@Body() body: ResetPassword) {
+    return this.authService.resetPassword({
+      token: body.token,
+      newPassword: body.newPassword,
+    });
+  }
 }

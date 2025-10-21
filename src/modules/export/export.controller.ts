@@ -29,7 +29,7 @@ import { Tag } from 'src/constants/api-tag.enum';
 import { User } from 'src/decorators/current-user';
 import { ResponseMessage } from 'src/decorators/response_message.decorator';
 import QueryExportDto from './dto/query-export-dto';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 
 @ApiTags(Tag.EXPORT)
 @Controller('export')

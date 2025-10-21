@@ -21,7 +21,7 @@ import { UpdateImportDto } from '../import/dto/update-import.dto';
 import dayjs from 'dayjs';
 import { filterEmptyFields } from 'src/helpers/utils';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 
 @Injectable()
 export class DetailImportService {

@@ -139,7 +139,7 @@
     "/api/v1/auth/register": {
       "post": {
         "operationId": "AuthController_register",
-        "summary": "Tạo cho customer thôi . Register  cho customer. Thành công trả về Id custommer á  ",
+        "summary": "Tạo cho customer thôi. Register cho customer. Thành công trả về Id custommer",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -170,7 +170,7 @@
     "/api/v1/auth/check-code": {
       "post": {
         "operationId": "AuthController_checkCode",
-        "summary": "kích hoạt tài khoản  = mã code 4 số khi đăng kí ,",
+        "summary": "kích hoạt tài khoản bằng mã code",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -195,7 +195,7 @@
     "/api/v1/auth/retry-active": {
       "post": {
         "operationId": "AuthController_retryActive",
-        "summary": "kích hoạt lại tài khoản khi mã code hết hạn or ở trang login chưa kick hoạt  = cách gửi lại (resend )email , để trả về mã code. Sài ở trang login khi tk chưa kích hoạt hoặc hết hạn ",
+        "summary": "Gửi lại mã kích hoạt tài khoản vào gmail của khách hàng",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -250,31 +250,6 @@
         ]
       }
     },
-    "/api/v1/auth/change-password": {
-      "post": {
-        "operationId": "AuthController_changePassword",
-        "summary": "Thay đổi mật khẩu mới khi chưa login",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeAcount"
-              }
-            }
-          }
-        },
-        "responses": {
-          "500": {
-            "description": "Internal server"
-          }
-        },
-        "tags": [
-          "AUTHENTICATE"
-        ]
-      }
-    },
     "/api/v1/auth/admin/retryPassword": {
       "post": {
         "operationId": "AuthController_retryPasswordAdmin",
@@ -304,35 +279,10 @@
         ]
       }
     },
-    "/api/v1/auth/admin/change-password": {
-      "post": {
-        "operationId": "AuthController_changePassưordAdmin",
-        "summary": "Thay đổi mật khẩu mới khi chưa login",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeAcount"
-              }
-            }
-          }
-        },
-        "responses": {
-          "500": {
-            "description": "Internal server"
-          }
-        },
-        "tags": [
-          "AUTHENTICATE"
-        ]
-      }
-    },
     "/api/v1/auth/google": {
       "get": {
         "operationId": "AuthController_googleLogin",
-        "summary": "Google Login : có thể gõ theo đường dẫn trên google để chuyển hướng đến google",
+        "summary": "Google Login: có thể gõ theo đường dẫn trên google để chuyển hướng đến google",
         "description": "Redirects the user to Google for authentication. This endpoint initiates the login process by redirecting the user to Google’s authentication page.",
         "parameters": [],
         "responses": {
@@ -390,17 +340,69 @@
         ]
       }
     },
-    "/api/v1/auth/contact": {
+    "/api/v1/auth/admin/forgot-password": {
       "post": {
-        "operationId": "AuthController_sendMailAdmin_ResponseCustomer",
-        "summary": "Liên hệ gửi mail về admin và phản hồi khách hàng ",
+        "operationId": "AuthController_forgotPassword",
+        "summary": "Quên mật khẩu cho tài khoản",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Email đăng nhập của tài khoản",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/verify-reset-password": {
+      "post": {
+        "operationId": "AuthController_verifyResetPasswordToken",
+        "summary": "Xác thực reset password cho admin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Email đăng nhập của tài khoản",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "summary": "Thay đổi lại mật khẩu",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InfoContact"
+                "$ref": "#/components/schemas/ResetPassword"
               }
             }
           }
@@ -12368,12 +12370,6 @@
     },
     {
       "url": "https://flexible-cute-caiman.ngrok-free.app"
-    },
-    {
-      "url": "http://192.168.1.13:3000"
-    },
-    {
-      "url": "https://hs-backend-8fop.onrender.com"
     }
   ],
   "components": {
@@ -12474,66 +12470,49 @@
           "email"
         ]
       },
-      "ChangeAcount": {
+      "EmailDto": {
         "type": "object",
         "properties": {
-          "codeId": {
-            "type": "string",
-            "description": "Mã codeId của tài khoản",
-            "example": "1234"
-          },
           "email": {
             "type": "string",
-            "description": "mail của tài khoản",
-            "example": "nguyenvanhuy20053012@gmail.com"
-          },
-          "confirmpassword": {
-            "type": "string",
-            "description": "confirmpassword",
-            "example": "123456"
-          },
-          "password": {
-            "type": "string",
-            "description": "password",
-            "example": "123456"
+            "description": "Email của tài khoản",
+            "example": ""
           }
         },
         "required": [
-          "codeId",
-          "email",
-          "confirmpassword",
-          "password"
+          "email"
         ]
       },
-      "InfoContact": {
+      "VerifyResetPasswordDto": {
         "type": "object",
         "properties": {
-          "name": {
+          "token": {
             "type": "string",
-            "description": "Tên",
-            "example": "Ngô Đình Phuoc"
-          },
-          "phone": {
-            "type": "string",
-            "description": "Số điện thoại",
-            "example": "0865446276"
-          },
-          "email": {
-            "type": "string",
-            "description": "Email",
-            "example": "phuoc@example.com"
-          },
-          "note": {
-            "type": "string",
-            "description": "Ghi chú",
-            "example": "Tôi cần báo giá nhanh về mẫu xe mới."
+            "description": "token xác thực",
+            "example": ""
           }
         },
         "required": [
-          "name",
-          "phone",
-          "email",
-          "note"
+          "token"
+        ]
+      },
+      "ResetPassword": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "token xác thực",
+            "example": ""
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "",
+            "description": "Mật khẩu mới"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
         ]
       },
       "UploadImageReponseDto": {
@@ -13693,6 +13672,37 @@
             "example": "Products/"
           }
         }
+      },
+      "InfoContact": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tên",
+            "example": "Ngô Đình Phuoc"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Số điện thoại",
+            "example": "0865446276"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email",
+            "example": "phuoc@example.com"
+          },
+          "note": {
+            "type": "string",
+            "description": "Ghi chú",
+            "example": "Tôi cần báo giá nhanh về mẫu xe mới."
+          }
+        },
+        "required": [
+          "name",
+          "phone",
+          "email",
+          "note"
+        ]
       },
       "OptionValuesDto": {
         "type": "object",

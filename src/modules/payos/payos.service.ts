@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import PayOS from '@payos/node';
 import { CreatePayOsOrderDto } from './dto/create-order-payos.dto';
-import { UserValidationType } from 'src/auth/passport/jwt.strategy';
+import { UserValidationType } from 'src/auth/strategy/jwt.strategy';
 import { Order } from '../order/entities/order.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaymentTransaction } from '../payment_transaction/entities/payment_transaction.entity';
