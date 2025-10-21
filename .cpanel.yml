@@ -1,31 +1,21 @@
 ---
 deployment:
   tasks:
-    # 1️⃣ Đặt biến môi trường
+    # 1️⃣ Xác định thư mục đích (nơi app đang chạy thật)
     - export DEPLOYPATH=/home/xnzbgatp/backend-nestjs
 
-    # 2️⃣ Kích hoạt môi trường Node.js
-    - /bin/echo "🌱 Activating Node.js environment..."
+    # 2️⃣ Kích hoạt môi trường Node.js đúng phiên bản
     - source /home/xnzbgatp/nodevenv/backend-nestjs/20/bin/activate
 
-    # 3️⃣ Di chuyển đến thư mục project
-    - cd $DEPLOYPATH
+    # 3️⃣ Cài dependency (nếu cần, bỏ qua devDependencies)
+    - cd /home/xnzbgatp/repositories/backend-nestjs
+    - npm install
 
-    # 4️⃣ Pull code mới nhất từ GitHub
-    - /bin/echo "🔄 Pulling latest code from GitHub..."
-    - /bin/git -C $DEPLOYPATH pull origin main
+    # 4️⃣ Build lại NestJS (từ TypeScript sang JavaScript)
+    - npm run build
 
-    # 5️⃣ Cài dependencies
-    - /bin/echo "📦 Installing dependencies..."
-    - $NODEBIN/npm install --omit=dev
-
-    # 6️⃣ Build NestJS project
-    - /bin/echo "🏗️ Building NestJS project..."
-    - $NODEBIN/npm run deploy
-
-    # 7️⃣ Restart hoặc khởi động bằng PM2
-    - /bin/echo "🚀 Restarting NestJS app with PM2..."
-    - $NODEBIN/pm2 reload nest-app || $NODEBIN/pm2 start $DEPLOYPATH/dist/main.js --name nest-app
-
-    # 8️⃣ Hoàn tất
-    - /bin/echo "✅ Deployment completed successfully!"
+    # 5️⃣ Copy file build & cấu hình sang thư mục deploy thật
+    - /bin/cp -R dist $DEPLOYPATH/
+    - /bin/cp package.json $DEPLOYPATH/
+    - /bin/cp -R node_modules $DEPLOYPATH/
+    - /bin/cp -R src $DEPLOYPATH/
