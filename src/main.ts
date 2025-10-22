@@ -93,12 +93,6 @@ async function bootstrap() {
   writeFileSync('./openapi.json', JSON.stringify(document, null, 2));
   console.log(`Server running on port ${port}`);
 
-  const shouldListen = process.env.CPANEL_UI !== 'true';
-  // Bind to all IPv4 addresses
-  if (shouldListen) {
-    await app.listen(port, '0.0.0.0');
-  } else {
-    console.log('Running inside cPanel UI.');
-  }
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();

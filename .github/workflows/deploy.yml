@@ -1,0 +1,57 @@
+name: Deploy NestJs App via FTP
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy-and-trigger-start:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout branch
+        uses: actions/checkout@v4
+
+      - name: setup nodejs app
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.4
+
+      - name: Install dependency
+        run: npm ci
+
+      - name: Build App
+        run: npm run build
+
+      - name: 🧹 Clean up unnecessary files
+        run: |
+          rm -rf node_modules
+          rm -rf src
+          rm -f .env
+          echo "Cleanup complete"
+
+      - name: 🚀 Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /api.minhdeptrai.site/nestjs-backend/
+          local-dir: dist/
+          port: 2210
+          protocol: ftps
+
+      - name: Prepare tmp directory with fresh restart.txt
+        run: |
+          mkdir -p tmp
+          date > tmp/restart.txt
+
+      - name: Restart trigger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /api.minhdeptrai.site/nestjs-backend/
+          local-dir: dist/
+          port: 2210
+          protocol: ftps

@@ -1,6 +1,5 @@
 # Ignore development/config files
 
-package-lock.json
 .eslintrc.js
 .gitignore
 .nvrmc

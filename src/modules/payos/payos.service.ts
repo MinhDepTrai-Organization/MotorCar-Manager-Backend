@@ -16,10 +16,10 @@ import {
 } from 'src/constants/order_status.enum';
 import { Voucher } from '../vourchers/entities/vourcher.entity';
 import { UserVourcher } from '../user_vourcher/entities/user_vourcher.entity';
+import appConfig from 'src/config/app.config';
 
-const return_success_url = `${process.env.DEPLOYMENT_URL_FE}/purchase`;
-const cancel_url = `${process.env.DEPLOYMENT_URL_FE}/purchase`;
-
+const return_success_url = `${appConfig().BE_URL}/purchase`;
+const cancel_url = `${appConfig().BE_URL}/purchase`;
 export interface ItemPayOsOrderDto {
   name: string; //Tên sản phẩm
   quantity: number; //Số lượng sản phẩm
