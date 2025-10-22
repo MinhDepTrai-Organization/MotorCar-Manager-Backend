@@ -33,47 +33,28 @@ jobs:
           rm -rf src
           echo "Cleanup complete"
 
+      - name: Prepare tmp directory with fresh restart.txt
+        run: |
+          mkdir -p tmp
+          date > tmp/restart.txt
+
+      - name: 🧱 Prepare deploy folder
+        run: |
+          rm -rf deploy
+          mkdir deploy
+          cp -r dist deploy/dist
+          cp package*.json deploy/
+          cp .env deploy/
+          cp -r tmp deploy/tmp
+          echo "Prepared deploy folder"
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /nestjs-backend/dist/
-          local-dir: ./dist/
-          port: 21
-          protocol: ftps
-          dangerous-clean-slate: false
-
-      - name: Upload config files (.env + package.json)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
           server-dir: /nestjs-backend/
-          local-dir: ./
-          include: |
-            package.json
-            package-lock.json
-            .env
-          dangerous-clean-slate: false
-
-      - name: Prepare tmp directory with fresh restart.txt
-        run: |
-          mkdir -p tmp
-          date > tmp/restart.txt
-
-      - name: Restart trigger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /nestjs-backend/tmp/
-          local-dir: ./tmp/
+          local-dir: ./deploy/
           port: 21
           protocol: ftps
-          dangerous-clean-slate: false
