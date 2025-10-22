@@ -53,7 +53,6 @@ export class AuthService {
     private CustomersService: CustomersService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    // private readonly mailerService: MailerService,
     private readonly mailerService: CustomMailService,
 
     @Inject(refreshJwtConfig.KEY)
