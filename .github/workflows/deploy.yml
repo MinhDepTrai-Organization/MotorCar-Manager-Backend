@@ -27,13 +27,13 @@ jobs:
       - name: Build App
         run: npm run build
 
-      - name: 🧹 Clean up unnecessary files
+      - name: Clean up unnecessary files
         run: |
           rm -rf node_modules
           rm -rf src
           echo "Cleanup complete"
 
-      - name: 🚀 Deploy via FTP
+      - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -45,7 +45,7 @@ jobs:
           protocol: ftps
           dangerous-clean-slate: false
 
-      - name: 🚚 Upload config files (.env + package.json)
+      - name: Upload config files (.env + package.json)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
