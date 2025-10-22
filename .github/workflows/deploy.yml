@@ -30,14 +30,14 @@ jobs:
           echo "Cleanup complete"
 
       - name: 🚀 Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4
+        uses: SamKirkland/FTP-Deploy-Action@4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /api.minhdeptrai.site/nestjs-backend/
           local-dir: dist/
-          port: 2210
+          port: 21
           protocol: ftps
 
       - name: Prepare tmp directory with fresh restart.txt
@@ -46,12 +46,12 @@ jobs:
           date > tmp/restart.txt
 
       - name: Restart trigger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4
+        uses: SamKirkland/FTP-Deploy-Action@4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /api.minhdeptrai.site/nestjs-backend/
           local-dir: dist/
-          port: 2210
+          port: 21
           protocol: ftps
