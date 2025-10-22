@@ -93,6 +93,6 @@ async function bootstrap() {
   writeFileSync('./openapi.json', JSON.stringify(document, null, 2));
   console.log(`Server running on port ${port}`);
 
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, '103.221.223.21');
 }
 bootstrap();

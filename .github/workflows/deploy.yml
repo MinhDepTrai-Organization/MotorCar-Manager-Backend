@@ -16,6 +16,11 @@ jobs:
         with:
           node-version: 20.19.4
 
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
+          echo ".env file created from secret"
+
       - name: Install dependency
         run: npm ci
 
@@ -26,19 +31,35 @@ jobs:
         run: |
           rm -rf node_modules
           rm -rf src
-          rm -f .env
           echo "Cleanup complete"
 
       - name: 🚀 Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /api.minhdeptrai.site/nestjs-backend/
-          local-dir: dist/
+          server-dir: /nestjs-backend/dist/
+          local-dir: ./dist/
           port: 21
           protocol: ftps
+          dangerous-clean-slate: false
+
+      - name: 🚚 Upload config files (.env + package.json)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          server-dir: /nestjs-backend/
+          local-dir: ./
+          include: |
+            package.json
+            package-lock.json
+            .env
+          dangerous-clean-slate: false
 
       - name: Prepare tmp directory with fresh restart.txt
         run: |
@@ -46,12 +67,13 @@ jobs:
           date > tmp/restart.txt
 
       - name: Restart trigger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /api.minhdeptrai.site/nestjs-backend/
-          local-dir: dist/
+          server-dir: /nestjs-backend/tmp/
+          local-dir: ./tmp/
           port: 21
           protocol: ftps
+          dangerous-clean-slate: false
