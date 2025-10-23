@@ -33,13 +33,19 @@ jobs:
           rm -rf src
           echo "Cleanup complete"
 
-        # 🧱 Tạo thư mục staging để gom dist + package.json + .env
+      - name: Prepare tmp directory with fresh restart.txt
+        run: |
+          mkdir -p tmp
+          date > tmp/restart.txt
+
       - name: 🧱 Prepare deploy folder
         run: |
+          rm -rf deploy
           mkdir deploy
           cp -r dist deploy/dist
           cp package*.json deploy/
           cp .env deploy/
+          cp -r tmp deploy/tmp
           echo "Prepared deploy folder"
 
       - name: Deploy via FTP
@@ -52,20 +58,3 @@ jobs:
           local-dir: ./deploy/
           port: 21
           protocol: ftps
-
-      - name: Prepare tmp directory with fresh restart.txt
-        run: |
-          mkdir -p tmp
-          date > tmp/restart.txt
-
-      - name: Restart trigger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /nestjs-backend/tmp/
-          local-dir: ./tmp/
-          port: 21
-          protocol: ftps
-          dangerous-clean-slate: false
