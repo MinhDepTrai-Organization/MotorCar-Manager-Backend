@@ -345,7 +345,7 @@ export class UserService {
       // Kiểm tra xem người dùng có tồn tại không
       const existingUser = await this.usersRepository.findOne({
         where: { id },
-        relations: ['Roles'],
+        relations: ['Roles', 'permissions'],
       });
 
       if (!existingUser) {
@@ -360,8 +360,9 @@ export class UserService {
 
       const { Roles, ...updateUser } = updateUserDto;
       const updatedUser = await this.usersRepository.save({
-        id: existingUser.id, // đảm bảo id không bị thay đổi
+        ...existingUser,
         ...updateUser,
+        id: existingUser.id, // đảm bảo id không bị thay đổi
         Roles: [objectRole],
       });
       const { password, ...data } = updatedUser;

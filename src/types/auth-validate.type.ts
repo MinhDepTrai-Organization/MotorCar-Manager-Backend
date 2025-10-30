@@ -6,12 +6,14 @@ export interface BaseProfile {
   email: string;
   firstName?: string;
   lastName?: string;
+  middleName?: string;
   picture?: string;
+  gender?: string;
 }
 
 // Interface cho thông tin user trả về
 export interface UserResponse {
-  userId: string | number; // User dùng number, Customer dùng string (uuid)
+  userId: string;
   username: string;
   email: string;
   Roles: string;
@@ -27,7 +29,7 @@ export interface UserResponse {
 
 // Interface chung cho User và Customer
 export interface BaseUser {
-  id: string | number;
+  id: string;
   username: string;
   email: string;
   avatarUrl?: string;
@@ -44,7 +46,6 @@ export interface BaseUser {
 
 // Cấu hình cho hàm xác thực
 export interface ValidateConfig {
-  includeAvatar?: boolean;
   isAdmin?: boolean;
   createIfNotExists?: boolean;
   isGenerateToken?: boolean;
@@ -69,4 +70,9 @@ export interface ResetPassword {
 export interface VerifyResetPassword {
   token: string;
   config?: ValidateConfig;
+}
+
+export interface GenerateCodeActivationRegisterValidation {
+  length?: number;
+  expireInMinutes?: number;
 }

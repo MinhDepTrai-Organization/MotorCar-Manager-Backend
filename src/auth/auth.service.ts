@@ -7,19 +7,18 @@ import {
 import { JsonWebTokenError, JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { UserService } from 'src/modules/user/user.service';
 import {
-  ActiveAcount,
+  ActiveAccount,
   ChangeAcount,
-  getAccountDto,
   LoginDto,
   UserInfo,
 } from './dto/create-auth.dto';
 import { ConfigService } from '@nestjs/config';
-import { genSaltSync, hashSync, compareSync } from 'bcryptjs';
+import { compareSync } from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { User } from 'src/modules/user/entities/user.entity';
 import { Customer } from 'src/modules/customers/entities/customer.entity';
 import { CustomersService } from 'src/modules/customers/customers.service';
@@ -30,11 +29,12 @@ import {
   BaseProfile,
   BaseUser,
   ForgotPassword,
+  GenerateCodeActivationRegisterValidation,
   LoginConfig,
   UserResponse,
   ValidateConfig,
   VerifyResetPassword,
-} from './types/auth-validate.type';
+} from '../types/auth-validate.type';
 import { Permission } from 'src/modules/permission/entities/permission.entity';
 import { generateUUIDV4 } from 'src/helpers/utils';
 import { CustomMailService } from 'src/modules/mail/mail.service';
@@ -43,8 +43,11 @@ import {
   generateResetToken,
   hashPasswordFunc,
 } from 'src/helpers/login-security.utils';
-import { ResetPassword } from './types/auth-validate.type';
-import { ResponseFunc } from './types/api-response.type';
+import { ResetPassword } from '../types/auth-validate.type';
+import { ResponseFunc } from '../types/api-response.type';
+import { ISendMailOptions } from '@nestjs-modules/mailer';
+import { getExpireMinutes } from 'src/helpers/datetime.format';
+import { ProfileFacebook } from 'src/types/facebook-oaut.type';
 
 @Injectable()
 export class AuthService {
@@ -94,7 +97,7 @@ export class AuthService {
       roleName = user.Roles.name;
       permissions = user.Roles.permissions;
     } else {
-      throw new Error('Role không hợp lệ');
+      throw new Error('Tài khoản có role không hợp lệ');
     }
 
     const accessPayload = {
@@ -121,13 +124,13 @@ export class AuthService {
       gender: user.gender,
       permissions: permissions,
       isActice: user.isActice,
+      phoneNumber: user.phoneNumber,
     };
 
     if (isAdmin) {
       userResponse.address = user.address;
     } else {
       userResponse.birthday = user.birthday;
-      userResponse.phoneNumber = user.phoneNumber;
     }
 
     const access_token = this.jwtService.sign(accessPayload);
@@ -155,7 +158,15 @@ export class AuthService {
     | User
     | Customer
   > => {
-    const { email, firstName, lastName, picture } = profile;
+    const { email, picture, gender } = profile;
+    const getFullName = (profile, fallback = email) => {
+      const { firstName, middleName, lastName } = profile || {};
+      const parts = [lastName, middleName, firstName]
+        .map((s) => s?.trim())
+        .filter((s) => s);
+      return parts.length > 0 ? parts.join(' ') : fallback;
+    };
+    const username = getFullName(profile, email);
     let user: User | Customer;
 
     // Kiểm tra người dùng
@@ -168,31 +179,16 @@ export class AuthService {
     // Tạo người dùng mới nếu cần (cho Google/Facebook)
     if (!user && config.createIfNotExists) {
       await this.CustomerRepository.manager.transaction(async (manager) => {
-        const codeId = generateUUIDV4();
-        // const role_user = await this.RoleRepository.findOne({
-        //   where: { name: RoleEnum.USER },
-        // });
-        // user = this.CustomerRepository.create({
-        //   email,
-        //   username: firstName && lastName ? `${lastName} ${firstName}` : email,
-        //   Roles: role_user,
-        //   avatarUrl: config.includeAvatar ? picture : undefined,
-        //   codeId: codeId.slice(0, 4),
-        //   codeExprided: dayjs().add(5, 'minutes').toDate(),
-        //   isActice: true,
-        // });
-        // await this.CustomerRepository.save(user);
         const role_user = await manager.findOne(Role, {
           where: { name: RoleEnum.USER },
         });
         user = manager.create(Customer, {
           email,
-          username: firstName && lastName ? `${lastName} ${firstName}` : email,
+          username: username,
           Roles: role_user,
-          avatarUrl: config.includeAvatar ? picture : undefined,
-          codeId: codeId.slice(0, 4),
-          codeExprided: dayjs().add(5, 'minutes').toDate(),
+          avatarUrl: picture ? picture : null,
           isActice: true,
+          gender: gender as 'male' | 'female' | 'other' | null,
         });
         await manager.save<Customer>(user);
       });
@@ -239,27 +235,6 @@ export class AuthService {
     // Kiểm tra trạng thái kích hoạt
     if (!user.isActice) {
       throw new UnauthorizedException('Tài khoản chưa được kích hoạt');
-      // if (config.isAdmin) {
-      //   // throw new HttpException(
-      //   //   {
-      //   //     statusCode: HttpStatus.UNAUTHORIZED,
-      //   //     message:
-      //   //       'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản',
-      //   //     code: 1,
-      //   //   },
-      //   //   HttpStatus.UNAUTHORIZED,
-      //   // );
-      // } else {
-      //   // throw new NotFoundException({
-      //   //   status: 404,
-      //   //   message:
-      //   //     'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản nha',
-      //   //   data: { code: 2 },
-      //   // });
-      //   // throw new UnauthorizedException(
-      //   //   'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản',
-      //   // );
-      // }
     }
 
     // Sinh token và response
@@ -268,61 +243,6 @@ export class AuthService {
 
   // login customer
   async login(userInfo: LoginDto) {
-    // try {
-    //   const { email, password } = userInfo;
-    //   // có trả về permission và role
-    //   const user = await this.CustomersService.getCustomerByEmail(email);
-
-    //   if (!user) {
-    //     throw new NotFoundException('Email không chính xác');
-    //   }
-    //   const check = compareSync(password, user.password); // true
-    //   if (!check) {
-    //     throw new NotFoundException('Mật khẩu không chính xác');
-    //   }
-    //   if (!user.isActice) {
-    //     throw new NotFoundException({
-    //       status: 404,
-    //       message:
-    //         'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản nha',
-    //       data: { code: 2 },
-    //     });
-    //   }
-
-    //   const accessPayload = {
-    //     username: user.username,
-    //     email: user.email,
-    //     id: user.id,
-    //     role: user.Roles.name,
-    //   };
-
-    //   const refreshPayload = {
-    //     id: user.id,
-    //     email: user.email,
-    //     role: user.Roles.name,
-    //     username: user.username,
-    //   };
-    //   return {
-    //     access_token: this.jwtService.sign(accessPayload),
-    //     refresh_token: this.jwtService.sign(
-    //       refreshPayload,
-    //       this.refreshJwtTokenConfig,
-    //     ),
-    //     userId: user.id,
-    //     username: user.username,
-    //     email: user.email,
-    //     Roles: user.Roles.name,
-    //     avatarUrl: user.avatarUrl,
-    //     age: user.age,
-    //     birthday: user.birthday,
-    //     phoneNumber: user.phoneNumber,
-    //     gender: user.gender,
-    //     permissions: user.Roles.permissions,
-    //   };
-    // } catch (error) {
-    //   throw error;
-    // }
-
     try {
       return await this.handleLogin(userInfo, {
         isAdmin: false,
@@ -332,7 +252,7 @@ export class AuthService {
       throw error;
     }
   }
-  // admin
+  // login admin
   async loginAdmin(userInfo: LoginDto) {
     try {
       return await this.handleLogin(userInfo, { isAdmin: true });
@@ -341,246 +261,266 @@ export class AuthService {
       throw error;
     }
   }
-  // getAccount for Role Admin
-  async getAccountAdmin(userInfo: getAccountDto) {
-    const { email } = userInfo;
-    // lấy ra role , permission  nữa nhen
-    const user = await this.userService.getUser1(email);
 
-    if (!user) {
-      throw new UnauthorizedException('Email không chính xác');
-    }
-    const accessPayload = {
-      username: user.username,
-      email: user.email,
-      id: user.id,
-      role: user.Roles[0].name,
-    };
-
-    const refreshPayload = {
-      id: user.id,
-      email: user.email,
-      role: user.Roles[0].name,
-      username: user.username,
-    };
-    return {
-      access_token: this.jwtService.sign(accessPayload),
-      refresh_token: this.jwtService.sign(refreshPayload, {
-        expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      }),
-      userId: user.id,
-      username: user.username,
-      email: user.email,
-      Roles: user.Roles[0].name,
-      avatarUrl: user.avatarUrl,
-      age: user.age,
-      address: user.address,
-      phoneNumber: user.phoneNumber,
-      gender: user.gender,
-      permissions: user.Roles[0].permissions,
-    };
-  }
-
-  async refreshAccessToken(req: any) {
+  async refreshAccessToken(req: any, config?: ValidateConfig) {
     try {
       const { email } = req;
-      // Khai báo biến user ngoài if-else để tránh việc biến user bị hư mất
-      let user;
-      // return req;
-      if (req.role == 'user') {
-        user = await this.CustomersService.getCustomerByEmail(email);
-        if (!user) throw new UnauthorizedException('User not found');
-        const accessPayload = {
-          username: user.username,
-          email: user.email,
-          id: user.id,
-          role: user.Roles.name,
-        };
-        return {
-          access_token: this.jwtService.sign(accessPayload),
-        };
-      } else {
-        // lấy ra role
-        user = await this.userService.getUser1(email);
-        if (!user) throw new UnauthorizedException('User not found');
-        const accessPayload = {
-          username: user.username,
-          email: user.email,
-          id: user.id,
-          role: user.Roles[0].name,
-        };
-        return {
-          access_token: this.jwtService.sign(accessPayload),
-        };
-      }
+      const resValidate = await this.handleValidation(
+        { email } as BaseProfile,
+        {
+          isAdmin: config?.isAdmin ?? this.isAdmin(req),
+        },
+      );
+
+      const { access_token } = resValidate as { access_token: string };
+      return { access_token };
     } catch (error) {
-      console.error('Error verifying refresh token:', error);
+      console.error('Lỗi khi refresh lại access token', error);
       if (error instanceof TokenExpiredError) {
-        throw new UnauthorizedException('Refresh token has expired');
+        throw new UnauthorizedException('Refresh token đã hết hạn');
       }
       if (error instanceof JsonWebTokenError) {
-        throw new UnauthorizedException('Invalid refresh token');
+        throw new UnauthorizedException('Refresh token không hợp lệ');
       }
-      throw new UnauthorizedException('An unexpected error occurred');
+      throw new Error('Không thể refresh token, vui lòng thử lại sau');
     }
   }
-  // tạo customer
-  async register(userInfo: UserInfo, res: any) {
-    const { password, email } = userInfo;
-    // Kiểm tra xem email đã tồn tại trong cơ sở dữ liệu chưa
-    const existingUser = await this.CustomersService.findUserbyEmail({ email });
 
-    if (existingUser) {
-      // Nếu email đã tồn tại, trả về lỗi
-      return res.status(400).json({
-        message: 'Email already in use',
-      });
-    }
-    // hash
-    const hash = hashPasswordFunc({
-      password: password,
+  private generateActivationCode({
+    length = 4,
+    expireInMinutes = 5,
+  }: GenerateCodeActivationRegisterValidation = {}) {
+    return {
+      codeId: generateUUIDV4().slice(0, length),
+      codeExprided: dayjs().add(expireInMinutes, 'minutes').toDate(),
+    };
+  }
+
+  private async sendMail({
+    to,
+    subject = 'Kích hoạt tài khoản',
+    context,
+    template = './register',
+  }: ISendMailOptions) {
+    const { message, success } = await this.mailerService.sendMailFunc({
+      to,
+      subject,
+      context,
+      template,
     });
+    if (!success) {
+      throw new Error(message);
+    }
+  }
+
+  async register(
+    userInfo: UserInfo,
+    config: ValidateConfig = { isAdmin: true },
+  ) {
+    const { password, email } = userInfo;
+    const user: User | Customer = config?.isAdmin
+      ? await this.userService.getUser1(email)
+      : await this.CustomersService.getCustomerByEmail(email);
+    if (user) {
+      throw new BadRequestException('Email đã được sử dụng');
+    }
 
     try {
-      // Lưu vào database và đợi kết quả
-      userInfo.password = hash;
-      // tạo customer
-      const result = await this.CustomersService.createUser1({
-        ...userInfo,
-        // chưa kích hoạt
-        isActive: false,
-        codeId: uuidv4().slice(0, 4),
-        codeExprided: dayjs().add(5, 'minutes').toDate(),
-      });
+      const result = await this.CustomerRepository.manager.transaction(
+        async (manager) => {
+          const { codeId, codeExprided } = this.generateActivationCode();
+          const role = config.isAdmin ? RoleEnum.ADMIN : RoleEnum.USER;
+          const roleEntity = await this.RoleRepository.findOne({
+            where: { name: role },
+          });
+          let savedEntity: any;
 
-      // // Trả mã code về email khi người dùng được đăng ký thành công
-      // this.mailerService.sendMail({
-      //   to: userInfo.email, // list of receivers
-      //   from: 'noreply@nestjs.com', // sender address
-      //   subject: 'Activate your Account at Hồng Sơn Star ✔', // Subject line
+          if (config?.isAdmin) {
+            const userData: DeepPartial<User> = {
+              ...userInfo,
+              password: hashPasswordFunc({ password }),
+              codeId,
+              codeExprided,
+              Roles: [roleEntity],
+            };
+            savedEntity = await manager.save(manager.create(User, userData));
+          } else {
+            const customerData: DeepPartial<Customer> = {
+              ...userInfo,
+              password: hashPasswordFunc({ password }),
+              codeId,
+              codeExprided,
+              Roles: roleEntity,
+            };
+            savedEntity = await manager.save(
+              manager.create(Customer, customerData),
+            );
+          }
+          await this.sendMail({
+            to: email,
+            subject: 'Kích hoạt tài khoản',
+            template: './register',
+            context: {
+              name: userInfo.username ?? email,
+              activationCode: codeId,
+              codeExpire: getExpireMinutes(codeExprided),
+            },
+          });
 
-      //   template: './register',
-      //   context: {
-      //     name: result.username ?? result.email,
-      //     activationCode: result.codeId,
-      //   },
-      // });
-      // //
-      return res.status(201).json({
-        Iduser: result.id,
-      });
+          const result = config?.isAdmin
+            ? await manager.save(manager.create(User, savedEntity))
+            : await manager.save(manager.create(Customer, savedEntity));
+
+          return result;
+        },
+      );
+
+      return {
+        status: 201,
+        message: 'Đăng ký thành công! Vui lòng kiểm tra email.',
+        data: {
+          id: result.id,
+        },
+      };
     } catch (error) {
-      // Xử lý lỗi nếu có
-      return res.status(500).json({
-        message: 'Error registering user',
-      });
+      console.error('Lỗi xảy ra khi đăng kí tài khoản: ', error);
+      throw new Error('Đăng ký không thành công, vui lòng thử lại sau');
     }
   }
-  async handleActive(dataActive: ActiveAcount) {
-    const { codeId, id } = dataActive;
+  async handleActive(
+    dataActive: ActiveAccount,
+    config: ValidateConfig = { isAdmin: true },
+  ) {
+    try {
+      const { codeId, id } = dataActive;
 
-    if (!id || !codeId) {
-      throw new Error('Missing id or codeId');
-    }
+      if (!id || !codeId) {
+        throw new Error('Thiếu codeId hoặc id của tài khoản');
+      }
 
-    const user = await this.CustomersService.findOne({
-      id: id,
-      codeId: codeId,
-    });
+      const user = config.isAdmin
+        ? await this.userService.findOne({
+            id,
+            codeId,
+          })
+        : await this.CustomersService.findOne({
+            id: id,
+            codeId: codeId,
+          });
 
-    if (!user) {
-      throw new Error(`User with id: ${id} and codeId: ${codeId} not found`);
-    }
-    const isBeforeCheck = dayjs().isBefore(user.codeExprided);
-    if (isBeforeCheck) {
-      await this.CustomerRepository.update(
+      if (!user) {
+        throw new BadRequestException(`Mã kích hoạt không chính xác`);
+      }
+      const isBeforeCheck = dayjs().isBefore(user.codeExprided);
+      if (!isBeforeCheck) {
+        throw new BadRequestException(
+          'Đã hết hạn mã code. Vui lòng kích hoạt lại mã mới! ',
+        );
+      }
+      const repo = config.isAdmin
+        ? this.usersRepository
+        : this.CustomerRepository;
+      await repo.update(
         { id },
         {
+          codeId: null,
+          codeExprided: null,
           isActice: true,
         },
       );
-    } else {
-      throw new BadRequestException(
-        'Đã hết hạn mã code.Vui lòng resend email lại để lấy mã mới! ',
-      );
-    }
 
-    return {
-      status: 200,
-      message: 'Kích hoạt thành công',
-    };
+      return {
+        status: 200,
+        message: 'Kích hoạt tài khoản thành công',
+        data: null,
+      };
+    } catch (error) {
+      console.error('Lỗi xảy ra khi xử lý kích hoạt tài khoản: ', error);
+      throw error;
+    }
   }
 
-  async retryActive(email: string) {
-    const user = await this.CustomerRepository.findOne({ where: { email } });
+  async retryActive(email: string, config: ValidateConfig = { isAdmin: true }) {
+    try {
+      const user = config.isAdmin
+        ? await this.userService.findUserbyEmail(email)
+        : await this.CustomerRepository.findOne({ where: { email } });
+      if (!user) {
+        throw new BadRequestException('email không tồn tại');
+      }
+      const { codeId, codeExprided } = this.generateActivationCode();
+      await this.sendMail({
+        to: user.email,
+        subject: 'Lấy lại mã kích hoạt tài khoản tại minhdeptrai.site',
 
-    if (!user) {
-      throw new BadRequestException('Không tồn tại user');
+        template: './register',
+        context: {
+          name: user.username ?? user.email,
+          activationCode: codeId,
+          codeExpire: getExpireMinutes(codeExprided),
+        },
+      });
+      const repo = config.isAdmin
+        ? this.usersRepository
+        : this.CustomerRepository;
+
+      await repo.update({ email }, { codeId, codeExprided });
+
+      return {
+        status: 200,
+        message: 'Lấy lại mã kích hoạt thành công',
+        data: {
+          id: user.id,
+        },
+      };
+    } catch (error) {
+      console.error('Lỗi xảy ra khi lấy lại mã kích hoạt tài khoản: ', error);
+      throw error;
     }
-
-    const codeId = uuidv4();
-    await this.CustomerRepository.update(
-      { email },
-      {
-        codeId: codeId.slice(0, 4),
-        codeExprided: dayjs().add(5, 'minutes').toDate(),
-      },
-    );
-
-    // this.mailerService.sendMail({
-    //   to: user.email, // list of receivers
-    //   from: 'ngodinhphuoc100@gmail.com', // sender address
-    //   subject: 'Retry Active your Account at Hồng Sơn Star ✔', // Subject line
-
-    //   template: './register',
-    //   context: {
-    //     name: user.username ?? user.email,
-    //     activationCode: codeId.slice(0, 4),
-    //   },
-    // });
-
-    return {
-      id: user.id,
-    };
   }
 
   async retryPassword(email: string) {
-    const user = await this.CustomerRepository.findOne({ where: { email } });
+    try {
+      const user = await this.CustomerRepository.findOne({ where: { email } });
 
-    if (!user) {
-      throw new BadRequestException('Không tồn tại user');
+      if (!user) {
+        throw new BadRequestException('Không tồn tại user');
+      }
+
+      const { codeId, codeExprided } = this.generateActivationCode();
+
+      await this.sendMail({
+        to: user.email,
+        subject: 'Lấy mã kích hoạt quên mật khẩu',
+        template: './register',
+        context: {
+          name: user.username ?? user.email,
+          activationCode: codeId,
+          codeExpire: getExpireMinutes(codeExprided),
+        },
+      });
+
+      // Cập nhật lại thông tin user
+      await this.CustomerRepository.update(
+        { email },
+        {
+          codeId: codeId,
+          codeExprided: codeExprided,
+        },
+      );
+
+      // Trả email
+      return {
+        id: user.id,
+        email: user.email,
+      };
+    } catch (error) {
+      console.error(
+        'Lỗi xảy ra khi lấy lại mã kích hoạt quên mật khẩu: ',
+        error,
+      );
+      throw error;
     }
-
-    const codeId = uuidv4();
-
-    // Cập nhật lại thông tin user
-    await this.CustomerRepository.update(
-      { email },
-      {
-        codeId: codeId.slice(0, 4),
-        codeExprided: dayjs().add(5, 'minutes').toDate(),
-      },
-    );
-
-    // // send email
-    // this.mailerService.sendMail({
-    //   to: user.email, // list of receivers
-    //   from: 'ngodinhphuoc100@gmail.com', // sender address
-    //   subject: 'Retry Active your Account at Hồng Sơn Star ✔', // Subject line
-
-    //   template: './register',
-    //   context: {
-    //     name: user.username ?? user.email,
-    //     activationCode: codeId.slice(0, 4),
-    //   },
-    // });
-
-    // Trả email
-    return {
-      id: user.id,
-      email: user.email,
-    };
   }
   async changePassword(dataActive: ChangeAcount) {
     const { email, password, confirmpassword, codeId } = dataActive;
@@ -591,43 +531,40 @@ export class AuthService {
     });
 
     if (!existingUser) {
-      return {
-        message: 'Email hoặc codeId không tồn tại',
-      };
+      throw new BadRequestException(
+        'Mã code không chính xác, vui lòng kiểm tra lại hộp thử',
+      );
     }
 
     // Kiểm tra mật khẩu và xác nhận mật khẩu
     if (password !== confirmpassword) {
-      // Nếu mật khẩu và xác nhận mật khẩu không khớp
-      return {
-        message: 'Mật khẩu và xác nhận mật khẩu không khớp',
-      };
+      throw new BadRequestException('Mật khẩu và xác nhận mật khẩu không khớp');
     }
     // hash
     const hash = hashPasswordFunc({ password });
     try {
       const isBeforeCheck = dayjs().isBefore(existingUser.codeExprided);
-      if (isBeforeCheck) {
-        await this.CustomerRepository.update(
-          { email },
-          {
-            password: hash, // Cập nhật mật khẩu đã được hash
-          },
-        );
-      } else {
+      if (!isBeforeCheck) {
         throw new BadRequestException(
-          'Đã hết hạn mã code.Vui lòng resend email lại để lấy mã mới! ',
+          'Đã hết hạn mã code. Vui lòng kích hoạt lại mã mới!',
         );
       }
+      await this.CustomerRepository.update(
+        { email },
+        {
+          password: hash,
+          codeId: null,
+          codeExprided: null,
+        },
+      );
 
       return {
+        status: 200,
         message: 'Mật khẩu đã được thay đổi thành công',
+        data: null,
       };
     } catch (error) {
-      // Xử lý lỗi nếu có
-      return {
-        message: 'Đã có lỗi xảy ra khi cập nhật mật khẩu',
-      };
+      throw error;
     }
   }
 
@@ -717,106 +654,104 @@ export class AuthService {
     }
   }
 
-  async validateGoogleUser(profile: any) {
-    const { email, firstName, lastName, picture } = profile;
-    let user = await this.CustomersService.getCustomerByEmail(email);
-    const codeId = uuidv4();
-    const role_user = await this.RoleRepository.findOne({
-      where: { name: RoleEnum.USER },
-    });
-    if (!user)
-      user = await this.CustomerRepository.create({
-        email,
-        username: firstName + ' ' + lastName,
-        Roles: role_user,
-        avatarUrl: picture,
-        codeId: codeId.slice(0, 4),
-        codeExprided: dayjs().add(5, 'minutes').toDate(),
-        isActice: true,
-      });
-    // Lưu người dùng mới vào cơ sở dữ liệu
-    await this.CustomerRepository.save(user);
-
-    const accessPayload = {
-      username: user.username,
-      email: user.email,
-      id: user.id,
-      role: user.Roles.name,
-    };
-    const refreshPayload = {
-      id: user.id,
-      email: user.email,
-      role: user.Roles.name,
-      username: user.username,
-    };
-    const users = {
-      username: user.username,
-      email: user.email,
-      role: user.Roles.name,
-      avatarUrl: user.avatarUrl,
-      age: user.age,
-      gender: user.gender,
-      isActice: true,
-    };
-    return {
-      access_token: this.jwtService.sign(accessPayload),
-      refresh_token: this.jwtService.sign(refreshPayload, {
-        expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      }),
-      users,
-    };
+  async validateGoogleUser(
+    profile: any,
+    config: ValidateConfig = {
+      createIfNotExists: true,
+      isGenerateToken: true,
+      isAdmin: false,
+    },
+  ) {
+    try {
+      return (await this.handleValidation(profile, config)) as {
+        access_token: string;
+        refresh_token: string;
+        user: UserResponse;
+      };
+    } catch (error) {
+      console.error('Lỗi xác thực người dùng google: ', error);
+      throw error;
+    }
   }
 
-  async validateFacebookUser(profile: any) {
-    const { email, firstName, lastName } = profile;
-    let user = await this.CustomersService.getCustomerByEmail(email);
-    const codeId = uuidv4();
-    if (!user) {
-      const role_user = await this.RoleRepository.findOne({
-        where: { name: RoleEnum.USER },
-      });
-      //Tạo người dùng mới nếu chưa tồn tại
-      user = await this.CustomerRepository.create({
-        email,
-        username: firstName + ' ' + lastName,
-        Roles: role_user,
-        codeId: codeId.slice(0, 4),
-        codeExprided: dayjs().add(5, 'minutes').toDate(),
-        isActice: true,
-      });
+  async validateFacebookUser(
+    profile: ProfileFacebook,
+    config: ValidateConfig = {
+      createIfNotExists: true,
+      isGenerateToken: true,
+      isAdmin: false,
+    },
+  ) {
+    try {
+      const { email, firstName, lastName, middleName, profileUrl, gender } =
+        profile;
+      return (await this.handleValidation(
+        {
+          email,
+          firstName,
+          lastName,
+          middleName,
+          picture: profileUrl,
+          gender,
+        },
+        config,
+      )) as {
+        access_token: string;
+        refresh_token: string;
+        user: UserResponse;
+      };
+    } catch (error) {
+      console.error('Lỗi xác thực người dùng google: ', error);
+      throw error;
     }
-    // Lưu người dùng mới vào cơ sở dữ liệu
-    await this.CustomerRepository.save(user);
 
-    const accessPayload = {
-      username: user.username,
-      email: user.email,
-      id: user.id,
-      role: user.Roles.name,
-    };
-    const refreshPayload = {
-      id: user.id,
-      email: user.email,
-      role: user.Roles.name,
-      username: user.username,
-    };
-    const users = {
-      username: user.username,
-      email: user.email,
-      role: user.Roles.name,
-      avatarUrl: user.avatarUrl,
-      age: user.age,
-      gender: user.gender,
-    };
-    return {
-      access_token: this.jwtService.sign(accessPayload),
-      refresh_token: this.jwtService.sign(refreshPayload, {
-        expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      }),
-      users,
-    };
+    // let user = await this.CustomersService.getCustomerByEmail(email);
+    // const codeId = uuidv4();
+    // if (!user) {
+    //   const role_user = await this.RoleRepository.findOne({
+    //     where: { name: RoleEnum.USER },
+    //   });
+    //   //Tạo người dùng mới nếu chưa tồn tại
+    //   user = await this.CustomerRepository.create({
+    //     email,
+    //     username: firstName + ' ' + lastName,
+    //     Roles: role_user,
+    //     codeId: codeId.slice(0, 4),
+    //     codeExprided: dayjs().add(5, 'minutes').toDate(),
+    //     isActice: true,
+    //   });
+    // }
+    // // Lưu người dùng mới vào cơ sở dữ liệu
+    // await this.CustomerRepository.save(user);
+
+    // const accessPayload = {
+    //   username: user.username,
+    //   email: user.email,
+    //   id: user.id,
+    //   role: user.Roles.name,
+    // };
+    // const refreshPayload = {
+    //   id: user.id,
+    //   email: user.email,
+    //   role: user.Roles.name,
+    //   username: user.username,
+    // };
+    // const users = {
+    //   username: user.username,
+    //   email: user.email,
+    //   role: user.Roles.name,
+    //   avatarUrl: user.avatarUrl,
+    //   age: user.age,
+    //   gender: user.gender,
+    // };
+    // return {
+    //   access_token: this.jwtService.sign(accessPayload),
+    //   refresh_token: this.jwtService.sign(refreshPayload, {
+    //     expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
+    //     secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+    //   }),
+    //   users,
+    // };
   }
 
   // async sendMailAdmin_ResponseCustomer(infoContact_OfCustomer) {

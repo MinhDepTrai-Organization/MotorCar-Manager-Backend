@@ -26,5 +26,8 @@ export default registerAs(
         strict: true,
       },
     },
+    defaults: {
+      from: `"Minhdeptrai website" ${process.env.SENDER_EMAIL}`,
+    },
   }),
 );

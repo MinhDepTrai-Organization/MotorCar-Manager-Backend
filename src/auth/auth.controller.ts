@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
-  ActiveAcount,
-  Email,
+  ActiveAccount,
+  ChangeAcount,
   getAccountDto,
   LoginDto,
   UserInfo,
@@ -34,9 +34,12 @@ import { User } from 'src/decorators/current-user';
 import { ResponseMessage } from 'src/decorators/response_message.decorator';
 import EmailDto from './dto/email-format.dto';
 import { ConfigService } from '@nestjs/config';
-import { APP_CONFIG_TOKEN, AppConfig } from 'src/config/app.config';
+import appConfig, { APP_CONFIG_TOKEN, AppConfig } from 'src/config/app.config';
 import ResetPassword from './dto/reset-password.dto';
 import VerifyResetPasswordDto from './dto/verify-reset-password.dto';
+import googleOauthConfig from 'src/config/google-oauth.config';
+import { ProfileFacebook } from 'src/types/facebook-oaut.type';
+import { FacebookAuthGuard } from './gaurds/facebook-oauth.guard';
 interface User {
   email: string;
   firstName: string;
@@ -89,14 +92,8 @@ export class AuthController {
     return this.authService.loginAdmin(userInfo);
   }
 
-  @Post('admin/getAccount')
-  @HttpCode(HttpStatus.OK)
-  handleGetAccountAdmin(@Body() userInfo: getAccountDto) {
-    return this.authService.getAccountAdmin(userInfo);
-  }
-
   @ApiOperation({
-    summary: 'Refresh access token cho cả users và customers',
+    summary: 'Refresh access token cho customer',
     description: `
       Gửi lên header Authorization với refresh token để lấy access token mới.
       Ví dụ:
@@ -113,45 +110,66 @@ export class AuthController {
       },
     },
   })
+  @UseGuards(RefreshAuthGuard)
+  @Get('refresh')
+  handleRefreshToken(@Req() req) {
+    return this.authService.refreshAccessToken(req.user, { isAdmin: false });
+  }
+
+  @ApiOperation({
+    summary: 'Refresh access token cho admin',
+    description: `
+      Gửi lên header Authorization với refresh token để lấy access token mới.
+      Ví dụ:
+      - Header: Authorization: Bearer <refresh_token>
+    `,
+  })
+  @ApiBearerAuth()
   @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid hoặc missing refresh token',
+    status: 201,
+    description: 'Access token mới được tạo thành công',
     schema: {
       example: {
-        statusCode: 401,
-        message: 'Invalid refresh token',
-        error: 'Unauthorized',
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
       },
     },
   })
   @UseGuards(RefreshAuthGuard)
-  @Get('refresh')
-  @HttpCode(HttpStatus.CREATED)
-  handleRefreshToken(@Req() req) {
-    return this.authService.refreshAccessToken(req.user);
+  @Get('admin/refresh')
+  handleRefreshTokenAdmin(@Req() req) {
+    return this.authService.refreshAccessToken(req.user, { isAdmin: true });
   }
 
-  // tạo người dùng ở đây
   @ApiOperation({
     summary:
-      'Tạo cho customer thôi. Register cho customer. Thành công trả về Id custommer',
+      'Tạo tài khoản người dùng bình thường (customer) và gửi mã kích hoạt về email',
   })
-  @ApiResponse({ status: 200, description: 'User info is exist in system' })
-  @ApiResponse({
-    status: 201,
-    description: ' user info have created sussessfully',
-  })
-  @ApiResponse({ status: 500, description: 'Internal server' })
   @Post('register')
-  register(@Body() userInfo: UserInfo, @Res() res) {
-    return this.authService.register(userInfo, res);
+  register(@Body() userInfo: UserInfo) {
+    return this.authService.register(userInfo, { isAdmin: false });
   }
+
   @ApiOperation({
-    summary: 'kích hoạt tài khoản bằng mã code',
+    summary: 'Tạo tài khoản admin và gửi mã kích hoạt về email',
   })
-  @ApiResponse({ status: 500, description: 'Internal server' })
+  @Post('admin/register')
+  registerAdmin(@Body() userInfo: UserInfo) {
+    return this.authService.register(userInfo);
+  }
+
+  @ApiOperation({
+    summary: 'kích hoạt tài khoản bằng mã code cho customer',
+  })
   @Post('check-code')
-  checkCode(@Body() dataActive: ActiveAcount) {
+  checkCode(@Body() dataActive: ActiveAccount) {
+    return this.authService.handleActive(dataActive, { isAdmin: false });
+  }
+
+  @ApiOperation({
+    summary: 'kích hoạt tài khoản bằng mã code cho admin',
+  })
+  @Post('admin/check-code')
+  checkCodeAdmin(@Body() dataActive: ActiveAccount) {
     return this.authService.handleActive(dataActive);
   }
 
@@ -160,19 +178,24 @@ export class AuthController {
     summary: 'Gửi lại mã kích hoạt tài khoản vào gmail của khách hàng',
   })
   @ApiBody({
-    description:
-      'The email address of the user to retry the activation process',
-    type: Email,
+    description: 'Email của người dùng cần gửi lại mã kích hoạt. Trả về Email',
+    type: EmailDto,
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Successfully sent the activation email.',
+  retryActive(@Body() body: EmailDto) {
+    const { email } = body;
+    return this.authService.retryActive(email, { isAdmin: false });
+  }
+
+  @Post('admin/retry-active')
+  @ApiOperation({
+    summary: 'Gửi lại mã kích hoạt tài khoản vào gmail của admin',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid email or user not found.',
+  @ApiBody({
+    description: 'Email của người dùng cần gửi lại mã kích hoạt. Trả về Email',
+    type: EmailDto,
   })
-  retryActive(@Body('email') email: string) {
+  retryActiveAdmin(@Body() body: EmailDto) {
+    const { email } = body;
     return this.authService.retryActive(email);
   }
 
@@ -183,7 +206,7 @@ export class AuthController {
   @ApiBody({
     description:
       'The email address of the user to retry the activation process . Trả về Email',
-    type: Email,
+    type: EmailDto,
   })
   @ApiResponse({
     status: 200,
@@ -196,13 +219,10 @@ export class AuthController {
   retryPassword(@Body('email') email: string) {
     return this.authService.retryPassword(email);
   }
-
-  // @ApiResponse({ status: 500, description: 'Internal server' })
-  // @ApiOperation({ summary: 'Thay đổi mật khẩu mới khi chưa login' })
-  // @Post('change-password')
-  // changePassword(@Body() dataActive: ChangeAcount) {
-  //   return this.authService.changePassword(dataActive);
-  // }
+  @Post('change-password')
+  changePassword(@Body() dataActive: ChangeAcount) {
+    return this.authService.changePassword(dataActive);
+  }
 
   @Post('admin/retryPassword')
   @ApiOperation({
@@ -211,7 +231,7 @@ export class AuthController {
   @ApiBody({
     description:
       'The email address of the user to retry the activation process . Trả về Email',
-    type: Email,
+    type: EmailDto,
   })
   @ApiResponse({
     status: 200,
@@ -224,67 +244,40 @@ export class AuthController {
   retryPasswordAdmin(@Body('email') email: string) {
     return this.authService.retryPasswordAdmin(email);
   }
-
-  // @ApiResponse({ status: 500, description: 'Internal server' })
-  // @ApiOperation({ summary: 'Thay đổi mật khẩu mới khi chưa login' })
-  // @Post('admin/change-password')
-  // changePassưordAdmin(@Body() dataActive: ChangeAcount) {
-  //   return this.authService.changePasswordAdmin(dataActive);
-  // }
-
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({
-    summary:
-      'Google Login: có thể gõ theo đường dẫn trên google để chuyển hướng đến google',
-    description:
-      'Redirects the user to Google for authentication. This endpoint initiates the login process by redirecting the user to Google’s authentication page.',
+    summary: 'Url chuyển hướng đến google',
   })
   googleLogin() {}
-
-  @ApiOperation({
-    summary:
-      'Sau khi login thành công sẽ trả về URL chứa các tham số như access_token, refresh_token, và users. ' +
-      "Trong đó, users cần sử dụng `JSON.parse(decodeURIComponent(urlParams.get('user'))) để giải mã`.",
-  })
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({
     summary: 'Google Login Callback',
-    description:
-      'Handles the callback from Google after the user has authenticated. This endpoint processes the authentication response from Google and retrieves user information.',
   })
   async googleCallback(@Req() req, @Res() res: Response) {
     const user = await this.authService.validateGoogleUser(req.user);
-    const appConfig = this.configService.get<AppConfig>(APP_CONFIG_TOKEN);
-    let Fe_Url = `${appConfig.FE_URL_USER}/success?token=${user.access_token}`;
+    let Fe_Url = `${appConfig().FE_URL_USER}/success?token=${user.access_token}`;
     return res.redirect(Fe_Url);
   }
 
   @Get('/facebook')
-  @UseGuards(AuthGuard('facebook'))
-  async facebookLogin(): Promise<any> {
-    return HttpStatus.OK;
-  }
-  @ApiOperation({
-    summary:
-      'Sau khi login thành công sẽ trả về URL chứa các tham số như access_token, refresh_token, và users. ' +
-      "Trong đó, users cần sử dụng `JSON.parse(decodeURIComponent(urlParams.get('user'))) để giải mã`.",
-  })
+  @UseGuards(FacebookAuthGuard)
+  async facebookLogin() {}
+
   @Get('/facebook/redirect')
-  @UseGuards(AuthGuard('facebook'))
-  async facebookLoginRedirect(
-    @Req() req: Request,
-    @Res() res: Response,
-  ): Promise<any> {
-    const userFb = req.user as User; // TypeScript sẽ không còn báo lỗi
+  @UseGuards(FacebookAuthGuard)
+  async facebookLoginRedirect(@Req() req: Request, @Res() res: Response) {
+    const { error } = req.query;
+
+    if (error) {
+      return res.redirect(
+        `${process.env.FE_URL_USER}/login?error=facebook_cancel`,
+      );
+    }
+    const userFb = req.user as ProfileFacebook;
     const user = await this.authService.validateFacebookUser(userFb);
-    // return user;
-    console.log('user', user);
-    const frontendURL = `${process.env.FE_DEPLOY}/success?token=${user.access_token}`;
-    // return res.redirect(
-    //   `${frontendURL}?access_token=${user.access_token}&refresh_token=${user.refresh_token}&user=${encodeURIComponent(JSON.stringify(user.users))}`,
-    // );
+    const frontendURL = `${appConfig().FE_URL_USER}/success?token=${user.access_token}`;
     return res.redirect(frontendURL);
   }
 

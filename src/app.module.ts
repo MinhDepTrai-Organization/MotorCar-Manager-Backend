@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './modules/user/user.module';
@@ -22,8 +22,6 @@ import { BranchModule } from './modules/branch/branch.module';
 import { WarehouseModule } from './modules/warehouse/warehouse.module';
 
 import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
-import { join } from 'path';
 import { CustomersModule } from './modules/customers/customers.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ZaloPaymentModule } from './modules/zalo-payment/zalo-payment.module';
@@ -72,6 +70,7 @@ import refreshJwtConfig from './config/refresh-jwt.config';
 import mailerConfig from './config/mailer.config';
 import typeormConfig from './config/typeorm.config';
 import appConfig from './config/app.config';
+import facebookOauthConfig from './config/facebook-oauth.config';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -85,6 +84,7 @@ import appConfig from './config/app.config';
         refreshJwtConfig,
         mailerConfig,
         appConfig,
+        facebookOauthConfig,
       ],
       expandVariables: true,
     }),

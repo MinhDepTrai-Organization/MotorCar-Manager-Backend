@@ -67,6 +67,7 @@ async function bootstrap() {
       'https://editor.swagger.io/?_gl=1*1xyqdcp*_gcl_au*NTg5MjIwNjEuMTc0MDE3NjY3Ng..',
     )
     .addTag('HS')
+    .addServer('/')
     .addServer(appConfig.BE_URL)
     .addServer(appConfig.DEPLOY_BE_URL_NGROK)
     .build();
@@ -93,6 +94,6 @@ async function bootstrap() {
   writeFileSync('./openapi.json', JSON.stringify(document, null, 2));
   console.log(`Server running on port ${port}`);
 
-  await app.listen(port, '103.221.223.21');
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();

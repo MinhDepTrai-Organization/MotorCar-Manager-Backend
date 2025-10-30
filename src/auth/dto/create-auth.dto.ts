@@ -33,22 +33,18 @@ export class UserInfo {
   @IsNotEmpty({ message: 'Password should not be empty' })
   @IsString({ message: 'Password must be a string' })
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
-  // @Matches(/(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])/, {
-  //   message:
-  //     'Password must include at least one uppercase letter, one number, and one special character',
-  // })
   password: string;
 
   @IsOptional()
-  @IsBoolean() // Xác minh đây là kiểu boolean nếu có giá trị
+  @IsBoolean()
   isActive: boolean;
 
   @IsOptional()
-  @IsString() // Xác minh đây là chuỗi nếu có giá trị
+  @IsString()
   codeId: string;
 
   @IsOptional()
-  @IsDate() // Xác minh đây là kiểu Date nếu có giá trị
+  @IsDate()
   codeExprided: Date;
 }
 
@@ -83,10 +79,6 @@ export class LoginDto {
   @IsNotEmpty({ message: 'Password should not be empty' })
   @IsString({ message: 'Password must be a string' })
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
-  // @Matches(/(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])/, {
-  //   message:
-  //     'Password must include at least one uppercase letter, one number, and one special character',
-  // })
   password: string;
 }
 
@@ -100,7 +92,7 @@ export class getAccountDto {
   email: string;
 }
 
-export class ActiveAcount {
+export class ActiveAccount {
   @ApiProperty({
     description: 'Mã codeId của tài khoản',
     example: '1982', // Ví dụ cho field này
@@ -115,15 +107,6 @@ export class ActiveAcount {
   })
   @IsNotEmpty({ message: 'Id khổng được để trống' })
   id: string;
-}
-export class Email {
-  @ApiProperty({
-    description: 'Email của tài khoản',
-    example: 'nguyenvanhuy20053012@gmail.com', // Ví dụ cho field này
-  })
-  @IsNotEmpty({ message: 'Không đươc để trống' })
-  @IsString()
-  email: string;
 }
 
 export class ChangeAcount {
