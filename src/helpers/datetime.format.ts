@@ -31,3 +31,8 @@ export const convertDate = (
     return null;
   }
 };
+
+export const getExpireMinutes = (expireAt: Date): number => {
+  const diff = expireAt.getTime() - Date.now();
+  return Math.max(Math.floor(diff / 1000 / 60), 0);
+};

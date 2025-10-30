@@ -68,34 +68,10 @@
         ]
       }
     },
-    "/api/v1/auth/admin/getAccount": {
-      "post": {
-        "operationId": "AuthController_handleGetAccountAdmin",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/getAccountDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "AUTHENTICATE"
-        ]
-      }
-    },
     "/api/v1/auth/refresh": {
       "get": {
         "operationId": "AuthController_handleRefreshToken",
-        "summary": "Refresh access token cho cả users và customers",
+        "summary": "Refresh access token cho customer",
         "description": "\n      Gửi lên header Authorization với refresh token để lấy access token mới.\n      Ví dụ:\n      - Header: Authorization: Bearer <refresh_token>\n    ",
         "parameters": [],
         "responses": {
@@ -110,16 +86,32 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid hoặc missing refresh token",
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/admin/refresh": {
+      "get": {
+        "operationId": "AuthController_handleRefreshTokenAdmin",
+        "summary": "Refresh access token cho admin",
+        "description": "\n      Gửi lên header Authorization với refresh token để lấy access token mới.\n      Ví dụ:\n      - Header: Authorization: Bearer <refresh_token>\n    ",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Access token mới được tạo thành công",
             "content": {
               "application/json": {
                 "schema": {
                   "example": {
-                    "statusCode": 401,
-                    "message": "Invalid refresh token",
-                    "error": "Unauthorized"
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   }
                 }
               }
@@ -139,7 +131,7 @@
     "/api/v1/auth/register": {
       "post": {
         "operationId": "AuthController_register",
-        "summary": "Tạo cho customer thôi. Register cho customer. Thành công trả về Id custommer",
+        "summary": "Tạo tài khoản người dùng bình thường (customer) và gửi mã kích hoạt về email",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -152,14 +144,33 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "User info is exist in system"
-          },
           "201": {
-            "description": " user info have created sussessfully"
-          },
-          "500": {
-            "description": "Internal server"
+            "description": ""
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/register": {
+      "post": {
+        "operationId": "AuthController_registerAdmin",
+        "summary": "Tạo tài khoản admin và gửi mã kích hoạt về email",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInfo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
           }
         },
         "tags": [
@@ -170,21 +181,46 @@
     "/api/v1/auth/check-code": {
       "post": {
         "operationId": "AuthController_checkCode",
-        "summary": "kích hoạt tài khoản bằng mã code",
+        "summary": "kích hoạt tài khoản bằng mã code cho customer",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ActiveAcount"
+                "$ref": "#/components/schemas/ActiveAccount"
               }
             }
           }
         },
         "responses": {
-          "500": {
-            "description": "Internal server"
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/check-code": {
+      "post": {
+        "operationId": "AuthController_checkCodeAdmin",
+        "summary": "kích hoạt tài khoản bằng mã code cho admin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActiveAccount"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
           }
         },
         "tags": [
@@ -199,21 +235,44 @@
         "parameters": [],
         "requestBody": {
           "required": true,
-          "description": "The email address of the user to retry the activation process",
+          "description": "Email của người dùng cần gửi lại mã kích hoạt. Trả về Email",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Email"
+                "$ref": "#/components/schemas/EmailDto"
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Successfully sent the activation email."
-          },
-          "400": {
-            "description": "Invalid email or user not found."
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/retry-active": {
+      "post": {
+        "operationId": "AuthController_retryActiveAdmin",
+        "summary": "Gửi lại mã kích hoạt tài khoản vào gmail của admin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Email của người dùng cần gửi lại mã kích hoạt. Trả về Email",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
           }
         },
         "tags": [
@@ -232,7 +291,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Email"
+                "$ref": "#/components/schemas/EmailDto"
               }
             }
           }
@@ -243,6 +302,30 @@
           },
           "400": {
             "description": "Invalid email or user not found."
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ]
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeAcount"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
           }
         },
         "tags": [
@@ -261,7 +344,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Email"
+                "$ref": "#/components/schemas/EmailDto"
               }
             }
           }
@@ -282,8 +365,7 @@
     "/api/v1/auth/google": {
       "get": {
         "operationId": "AuthController_googleLogin",
-        "summary": "Google Login: có thể gõ theo đường dẫn trên google để chuyển hướng đến google",
-        "description": "Redirects the user to Google for authentication. This endpoint initiates the login process by redirecting the user to Google’s authentication page.",
+        "summary": "Url chuyển hướng đến google",
         "parameters": [],
         "responses": {
           "200": {
@@ -298,8 +380,7 @@
     "/api/v1/auth/google/callback": {
       "get": {
         "operationId": "AuthController_googleCallback",
-        "summary": "Sau khi login thành công sẽ trả về URL chứa các tham số như access_token, refresh_token, và users. Trong đó, users cần sử dụng `JSON.parse(decodeURIComponent(urlParams.get('user'))) để giải mã`.",
-        "description": "Handles the callback from Google after the user has authenticated. This endpoint processes the authentication response from Google and retrieves user information.",
+        "summary": "Google Login Callback",
         "parameters": [],
         "responses": {
           "200": {
@@ -328,7 +409,6 @@
     "/api/v1/auth/facebook/redirect": {
       "get": {
         "operationId": "AuthController_facebookLoginRedirect",
-        "summary": "Sau khi login thành công sẽ trả về URL chứa các tham số như access_token, refresh_token, và users. Trong đó, users cần sử dụng `JSON.parse(decodeURIComponent(urlParams.get('user'))) để giải mã`.",
         "parameters": [],
         "responses": {
           "200": {
@@ -12366,6 +12446,9 @@
   ],
   "servers": [
     {
+      "url": "/"
+    },
+    {
       "url": "http://localhost:9000"
     },
     {
@@ -12400,19 +12483,6 @@
           "password"
         ]
       },
-      "getAccountDto": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "example": "ngodinhphuoc100@gmail.com",
-            "description": "Tên người dùng"
-          }
-        },
-        "required": [
-          "email"
-        ]
-      },
       "UserInfo": {
         "type": "object",
         "properties": {
@@ -12438,7 +12508,7 @@
           "password"
         ]
       },
-      "ActiveAcount": {
+      "ActiveAccount": {
         "type": "object",
         "properties": {
           "codeId": {
@@ -12457,19 +12527,6 @@
           "id"
         ]
       },
-      "Email": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "description": "Email của tài khoản",
-            "example": "nguyenvanhuy20053012@gmail.com"
-          }
-        },
-        "required": [
-          "email"
-        ]
-      },
       "EmailDto": {
         "type": "object",
         "properties": {
@@ -12481,6 +12538,37 @@
         },
         "required": [
           "email"
+        ]
+      },
+      "ChangeAcount": {
+        "type": "object",
+        "properties": {
+          "codeId": {
+            "type": "string",
+            "description": "Mã codeId của tài khoản",
+            "example": "1234"
+          },
+          "email": {
+            "type": "string",
+            "description": "mail của tài khoản",
+            "example": "nguyenvanhuy20053012@gmail.com"
+          },
+          "confirmpassword": {
+            "type": "string",
+            "description": "confirmpassword",
+            "example": "123456"
+          },
+          "password": {
+            "type": "string",
+            "description": "password",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "codeId",
+          "email",
+          "confirmpassword",
+          "password"
         ]
       },
       "VerifyResetPasswordDto": {

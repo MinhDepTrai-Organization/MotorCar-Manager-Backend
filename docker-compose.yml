@@ -1,29 +1,15 @@
 services:
-  # db:
-  #   container_name: postgresLocal
-  #   image: postgres
-  #   ports:
-  #     - '5432:5432'
-  #   environment:
-  #     POSTGRES_PASSWORD: 123456
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-
   nestjs-postgres-backend:
     container_name: nestjs-postgres-backend
     build:
       context: .
       dockerfile: Dockerfile
       target: dev
+    env_file:
+      - .env
     ports:
-      - '3000:3000'
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - '9000:9000'
     volumes:
-      - type: bind
-        source: .
-        target: /app
-      - type: volume
-        target: /app/node_modules
-# volumes:
-#   pgdata:
+      - .:/app
+      - /app/node_modules
+

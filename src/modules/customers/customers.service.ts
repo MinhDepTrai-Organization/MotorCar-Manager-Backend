@@ -154,7 +154,6 @@ export class CustomersService {
       to: customerInfo.email, // list of receivers
       from: 'noreply@nestjs.com', // sender address
       subject: 'Account Successfully Created at Ô Tô Hồng Sơn Star ✔', // Subject line
-
       template: './createAccount',
       context: {
         name: customerInfo.username ?? customerInfo.email,
