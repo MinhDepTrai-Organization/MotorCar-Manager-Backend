@@ -38,7 +38,7 @@ import {
 import { Permission } from 'src/modules/permission/entities/permission.entity';
 import { generateUUIDV4 } from 'src/helpers/utils';
 import { CustomMailService } from 'src/modules/mail/mail.service';
-import { APP_CONFIG_TOKEN, AppConfig } from 'src/config/app.config';
+import appConfig, { APP_CONFIG_TOKEN, AppConfig } from 'src/config/app.config';
 import {
   generateResetToken,
   hashPasswordFunc,
@@ -48,7 +48,7 @@ import { ResponseFunc } from '../types/api-response.type';
 import { ISendMailOptions } from '@nestjs-modules/mailer';
 import { getExpireMinutes } from 'src/helpers/datetime.format';
 import { ProfileFacebook } from 'src/types/facebook-oaut.type';
-
+import { Response } from 'express';
 @Injectable()
 export class AuthService {
   constructor(
@@ -208,6 +208,40 @@ export class AuthService {
     else return user;
   };
 
+  async verifyActivationCode(
+    dataActive: ActiveAccount,
+    config: ValidateConfig = { isAdmin: true },
+  ) {
+    try {
+      const { codeId, id } = dataActive;
+      if (!codeId || !id) {
+        throw new BadRequestException('Thiếu codeId hoặc id của tài khoản');
+      }
+
+      const user = config.isAdmin
+        ? await this.userService.findOne({ id, codeId })
+        : await this.CustomersService.findOne({ id, codeId });
+
+      if (!user) {
+        throw new BadRequestException('Mã kích hoạt không chính xác');
+      }
+
+      if (dayjs().isAfter(user.codeExprided)) {
+        throw new BadRequestException(
+          'Mã kích hoạt đã hết hạn. Vui lòng yêu cầu mã mới!',
+        );
+      }
+
+      return {
+        status: 200,
+        message: 'Mã hợp lệ, bạn có thể kích hoạt tài khoản',
+        data: { id, codeId },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Hàm trung gian: Xử lý đăng nhập (login, loginAdmin)
   async handleLogin(
     userInfo: LoginDto,
@@ -334,7 +368,6 @@ export class AuthService {
             where: { name: role },
           });
           let savedEntity: any;
-
           if (config?.isAdmin) {
             const userData: DeepPartial<User> = {
               ...userInfo,
@@ -356,6 +389,9 @@ export class AuthService {
               manager.create(Customer, customerData),
             );
           }
+          const activationLink = config.isAdmin
+            ? `${appConfig().FE_URL_ADMIN}/verify-code?codeId=${codeId}&id=${user.id}`
+            : `${appConfig().FE_URL_USER}/verify-code?codeId=${codeId}&id=${user.id}`;
           await this.sendMail({
             to: email,
             subject: 'Kích hoạt tài khoản',
@@ -364,6 +400,8 @@ export class AuthService {
               name: userInfo.username ?? email,
               activationCode: codeId,
               codeExpire: getExpireMinutes(codeExprided),
+              activationLink: activationLink,
+              isAdmin: config?.isAdmin,
             },
           });
 
@@ -443,21 +481,27 @@ export class AuthService {
   async retryActive(email: string, config: ValidateConfig = { isAdmin: true }) {
     try {
       const user = config.isAdmin
-        ? await this.userService.findUserbyEmail(email)
+        ? await this.userService.findUserbyEmail({ email })
         : await this.CustomerRepository.findOne({ where: { email } });
+
       if (!user) {
         throw new BadRequestException('email không tồn tại');
       }
       const { codeId, codeExprided } = this.generateActivationCode();
+
+      const activationLink = config.isAdmin
+        ? `${appConfig().FE_URL_ADMIN}/verify-code?codeId=${codeId}&id=${user.id}`
+        : `${appConfig().FE_URL_USER}/verify-code?codeId=${codeId}&id=${user.id}`;
       await this.sendMail({
         to: user.email,
         subject: 'Lấy lại mã kích hoạt tài khoản tại minhdeptrai.site',
-
         template: './register',
         context: {
           name: user.username ?? user.email,
           activationCode: codeId,
           codeExpire: getExpireMinutes(codeExprided),
+          activationLink: activationLink,
+          isAdmin: config?.isAdmin,
         },
       });
       const repo = config.isAdmin
@@ -468,7 +512,7 @@ export class AuthService {
 
       return {
         status: 200,
-        message: 'Lấy lại mã kích hoạt thành công',
+        message: 'Lấy lại mã kích hoạt thành công. Vui lòng kiểm tra gmail',
         data: {
           id: user.id,
         },
@@ -590,7 +634,7 @@ export class AuthService {
     // this.mailerService.sendMail({
     //   to: user.email, // list of receivers
     //   from: 'ngodinhphuoc100@gmail.com', // sender address
-    //   subject: 'Retry Active your Account at Hồng Sơn Star ✔', // Subject line
+    //   subject: 'Retry Active your Account at minhdeptrai.site ✔', // Subject line
 
     //   template: './register',
     //   context: {
@@ -704,54 +748,6 @@ export class AuthService {
       console.error('Lỗi xác thực người dùng google: ', error);
       throw error;
     }
-
-    // let user = await this.CustomersService.getCustomerByEmail(email);
-    // const codeId = uuidv4();
-    // if (!user) {
-    //   const role_user = await this.RoleRepository.findOne({
-    //     where: { name: RoleEnum.USER },
-    //   });
-    //   //Tạo người dùng mới nếu chưa tồn tại
-    //   user = await this.CustomerRepository.create({
-    //     email,
-    //     username: firstName + ' ' + lastName,
-    //     Roles: role_user,
-    //     codeId: codeId.slice(0, 4),
-    //     codeExprided: dayjs().add(5, 'minutes').toDate(),
-    //     isActice: true,
-    //   });
-    // }
-    // // Lưu người dùng mới vào cơ sở dữ liệu
-    // await this.CustomerRepository.save(user);
-
-    // const accessPayload = {
-    //   username: user.username,
-    //   email: user.email,
-    //   id: user.id,
-    //   role: user.Roles.name,
-    // };
-    // const refreshPayload = {
-    //   id: user.id,
-    //   email: user.email,
-    //   role: user.Roles.name,
-    //   username: user.username,
-    // };
-    // const users = {
-    //   username: user.username,
-    //   email: user.email,
-    //   role: user.Roles.name,
-    //   avatarUrl: user.avatarUrl,
-    //   age: user.age,
-    //   gender: user.gender,
-    // };
-    // return {
-    //   access_token: this.jwtService.sign(accessPayload),
-    //   refresh_token: this.jwtService.sign(refreshPayload, {
-    //     expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
-    //     secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-    //   }),
-    //   users,
-    // };
   }
 
   // async sendMailAdmin_ResponseCustomer(infoContact_OfCustomer) {
@@ -759,7 +755,7 @@ export class AuthService {
   //   this.mailerService.sendMail({
   //     to: emailAdmin, // list of receivers
   //     from: 'noreply@nestjs.com', // sender address
-  //     subject: 'Thông tin báo giá từ khách hàng Ô Tô Hồng Sơn ✔', // Subject line
+  //     subject: 'Thông tin báo giá từ khách hàng minhdeptrai.site ✔', // Subject line
 
   //     template: './contactPrice',
   //     context: {
@@ -773,7 +769,7 @@ export class AuthService {
   //   this.mailerService.sendMail({
   //     to: infoContact_OfCustomer.email, // list of receivers
   //     from: 'noreply@nestjs.com', // sender address
-  //     subject: 'Phản Hồi Đến Khách Hàng Ô Tô Hồng Sơn ✔', // Subject line
+  //     subject: 'Phản Hồi Đến Khách Hàng minhdeptrai.site ✔', // Subject line
 
   //     template: './thankyou',
   //     context: {

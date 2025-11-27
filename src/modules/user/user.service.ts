@@ -107,7 +107,7 @@ export class UserService {
       this.mailerService.sendMail({
         to: userInfo.email, // list of receivers
         from: 'noreply@nestjs.com', // sender address
-        subject: 'Account Successfully Created at Ô Tô Hồng Sơn Star ✔', // Subject line
+        subject: 'Account Successfully Created at minhdeptrai.site ✔', // Subject line
 
         template: './createAccount',
         context: {

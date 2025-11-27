@@ -1,7 +1,7 @@
 <html>
 
   <head>
-    <title>Minhdeptrai Activation Email</title>
+    <title>Kích hoạt tài khoản minhdeptrai.site</title>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
   </head>
@@ -14,28 +14,67 @@
         <h1
           style='font-size: 24px; font-weight: 700; line-height: 1.25; margin-top: 0; margin-bottom: 15px; text-align: center;'
         >
-          Chào mừng đến với website của Minhdeptrai</h1>
+          Chào mừng đến với website của Minhdeptrai
+        </h1>
       </div>
+
       <div style='padding: 24px; background-color: #ffffff;'>
-        <p style='margin-top: 0; margin-bottom: 24px;'>Xin chào {{name}},</p>
-        <p style='margin-top: 0; margin-bottom: 24px;'>Cảm ơn đã đến với web
-          site của chúng tôi, để kích hoạt tài khoản quý khách hãy sử dụng mã
-          code bên dưới:</p>
-        <h2
-          style='font-size: 20px; font-weight: 700; line-height: 1.25; margin-top: 0; margin-bottom: 15px; text-align: center;'
-        >
-          {{activationCode}}</h2>
-        <p style='margin-top: 0; margin-bottom: 24px;'>Xin hãy nhập mã code này
-          trong trang kích hoạt trong vòng
-          {{codeExpire}}
-          phút</p>
-        <p style='margin-top: 0; margin-bottom: 24px;'>Nếu bạn không đăng kí tài
-          khoản cho website, hãy bỏ qua gmail này</p>
-      </div>
-      <div style='background-color: #f6f6f6; padding: 24px;'>
+        <p style='margin-top: 0; margin-bottom: 24px;'>Xin chào
+          <b>{{name}}</b>,</p>
+
         <p style='margin-top: 0; margin-bottom: 24px;'>
-          Nếu bạn có bất kì câu hỏi nào, hãy liên hệ với chúng tôi qua
-          <a target='_blank' style='color: #000; text-decoration:none;'>
+          Cảm ơn bạn đã đăng ký tài khoản tại website của chúng tôi. Để kích
+          hoạt tài khoản, bạn có thể:
+        </p>
+
+        {{! Nếu là admin => gửi link }}
+        {{#if isAdmin}}
+          <p style='margin-top: 0; margin-bottom: 24px;'>
+            Nhấn vào nút bên dưới để kích hoạt tài khoản:
+          </p>
+
+          <div style='text-align: center; margin: 32px 0;'>
+            <a
+              href='{{activationLink}}'
+              style='display: inline-block; background-color: #0070f3; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;'
+              target='_blank'
+            >
+              Kích hoạt tài khoản ngay
+            </a>
+          </div>
+
+          {{! Ngược lại (user) => chỉ gửi mã code }}
+        {{else}}
+          <p style='margin-top: 0; margin-bottom: 24px;'>
+            Nhập mã kích hoạt dưới đây vào ứng dụng:
+          </p>
+
+          <h2
+            style='font-size: 20px; font-weight: 700; line-height: 1.25; margin-top: 0; margin-bottom: 15px; text-align: center; color: #0070f3;'
+          >
+            {{activationCode}}
+          </h2>
+        {{/if}}
+
+        <p style='margin-top: 0; margin-bottom: 24px;'>
+          Mã này sẽ hết hạn sau
+          <b>{{codeExpire}}</b>
+          phút.
+        </p>
+
+        <p style='margin-top: 0; margin-bottom: 24px;'>
+          Nếu bạn không đăng ký tài khoản, vui lòng bỏ qua email này.
+        </p>
+      </div>
+
+      <div style='background-color: #f6f6f6; padding: 24px;'>
+        <p style='margin-top: 0; margin-bottom: 24px; text-align: center;'>
+          Nếu bạn có bất kỳ câu hỏi nào, vui lòng truy cập
+          <a
+            href='https://minhdeptrai.site'
+            target='_blank'
+            style='color: #0070f3; text-decoration:none;'
+          >
             minhdeptrai.site
           </a>
         </p>

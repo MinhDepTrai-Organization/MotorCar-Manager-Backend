@@ -9,20 +9,24 @@ RUN npm ci
 RUN npm install @css-inline/css-inline-linux-x64-musl
 RUN npm rebuild @css-inline/css-inline --update-binary
 
+FROM base AS build
+COPY . .
+RUN npm run build
+
 # Dev stage
 FROM base AS dev
 ENV NODE_ENV=development
 COPY . .
-RUN npm run build
 CMD ["npm", "run", "dev"]
 
 # Production stage
 FROM node:22-alpine AS prod
 WORKDIR /app
 ENV NODE_ENV=production
-# Copy package.json và node_modules từ stage base
-COPY --from=base /app/package*.json ./
-COPY --from=base /app/node_modules ./node_modules
-# Copy dist từ stage dev
-COPY --from=dev /app/dist ./dist
+# # Copy package.json và node_modules từ stage base
+# COPY --from=base /app/package*.json ./
+# COPY --from=base /app/node_modules ./node_modules
+# # Copy dist từ stage dev
+# COPY --from=dev /app/dist ./dist
+COPY --from=build /app/dist ./dist
 CMD ["node", "dist/main.js"]

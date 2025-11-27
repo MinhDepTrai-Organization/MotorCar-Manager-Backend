@@ -23,7 +23,10 @@ export class CustomMailService {
 
       if (response?.accepted && response?.accepted?.length > 0) {
         console.log('✅ Gửi mail thành công:');
-        return { success: true, message: 'Gửi mail thành công' };
+        return {
+          success: true,
+          message: 'Gửi mail thành công. Hãy kiểm tra hộp thoại',
+        };
       } else {
         console.warn('⚠️ Gửi mail thất bại:', response);
         return { success: false, message: 'Email bị từ chối' };
