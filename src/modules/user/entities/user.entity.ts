@@ -62,7 +62,9 @@ export class User extends Base {
   @OneToMany(() => Export, (element) => element.user)
   export: Export[];
 
-  @ManyToMany(() => Role, (element) => element.users)
+  @ManyToMany(() => Role, (element) => element.users, {
+    onDelete: 'CASCADE',
+  })
   Roles: Role[];
   @ManyToMany(() => Permission, (element) => element.users)
   permissions: Permission[];

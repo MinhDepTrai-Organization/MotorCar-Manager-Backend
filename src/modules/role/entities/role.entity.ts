@@ -33,7 +33,7 @@ export class Role {
   @Column({ nullable: true })
   isActive: boolean;
 
-  @ManyToMany(() => Permission, (element) => element.roles, { cascade: true })
+  @ManyToMany(() => Permission, (element) => element.roles)
   @JoinTable({
     name: 'role_permissions',
     joinColumn: {
@@ -47,7 +47,10 @@ export class Role {
   })
   permissions: Permission[];
 
-  @ManyToMany(() => User, (element) => element.Roles, { cascade: true })
+  @ManyToMany(() => User, (element) => element.Roles, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   @JoinTable({
     name: 'users_have_roles',
     joinColumn: {

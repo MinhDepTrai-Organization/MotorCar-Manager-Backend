@@ -17,53 +17,23 @@ export class UserInfo {
     example: 'john.doe@example.com',
     description: 'Tên người dùng',
   })
-  @IsNotEmpty({ message: 'Username should not be empty' })
-  @IsString({ message: 'Username must be a string' })
+  @IsOptional()
+  @IsString({ message: 'Username phải là chuỗi hợp lệ' })
   username: string;
 
   @ApiProperty({
     example: 'john.doe@example.com',
     description: 'Địa chỉ email của người dùng',
   })
-  @IsNotEmpty({ message: 'Email should not be empty' })
-  @IsEmail({}, { message: 'Email must be a valid email address' })
+  @IsNotEmpty({ message: 'Email không được để trống' })
+  @IsEmail({}, { message: 'Email phải hợp lệ' })
   email: string;
 
   @ApiProperty({ example: 'P@ssw0rd', description: 'Password người dùng' })
-  @IsNotEmpty({ message: 'Password should not be empty' })
-  @IsString({ message: 'Password must be a string' })
-  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @IsNotEmpty({ message: 'Password không được để trống' })
+  @IsString({ message: 'Password phải là chuỗi hợp lệ' })
+  @MinLength(6, { message: 'Password phải ít nhất 6 kí tự' })
   password: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isActive: boolean;
-
-  @IsOptional()
-  @IsString()
-  codeId: string;
-
-  @IsOptional()
-  @IsDate()
-  codeExprided: Date;
-}
-
-export class ConfirmInfo {
-  @ApiProperty()
-  @IsNotEmpty()
-  wallet: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  isLedger: boolean;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  signature: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  nonce: string;
 }
 
 export class LoginDto {
@@ -80,16 +50,6 @@ export class LoginDto {
   @IsString({ message: 'Password must be a string' })
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
   password: string;
-}
-
-export class getAccountDto {
-  @ApiProperty({
-    example: 'ngodinhphuoc100@gmail.com',
-    description: 'Tên người dùng',
-  })
-  @IsNotEmpty({ message: 'Email không nên để trống' })
-  @IsEmail({}, { message: 'Email không hợp lệ' })
-  email: string;
 }
 
 export class ActiveAccount {
@@ -112,7 +72,7 @@ export class ActiveAccount {
 export class ChangeAcount {
   @ApiProperty({
     description: 'Mã codeId của tài khoản',
-    example: '1234', // Ví dụ cho field này
+    example: '1234',
   })
   @IsNotEmpty({ message: 'Không đươc để trống' })
   @IsString()
@@ -120,7 +80,7 @@ export class ChangeAcount {
 
   @ApiProperty({
     description: 'mail của tài khoản',
-    example: 'nguyenvanhuy20053012@gmail.com', // Ví dụ cho field này
+    example: 'nguyenvanhuy20053012@gmail.com',
   })
   @IsNotEmpty({ message: 'Không đươc để trống' })
   @IsString()

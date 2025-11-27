@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -13,7 +14,6 @@ import { AuthService } from './auth.service';
 import {
   ActiveAccount,
   ChangeAcount,
-  getAccountDto,
   LoginDto,
   UserInfo,
 } from './dto/create-auth.dto';
@@ -29,23 +29,14 @@ import {
 } from '@nestjs/swagger';
 import { Tag } from 'src/constants/api-tag.enum';
 import { Request, Response } from 'express';
-import { AuthGuard } from '@nestjs/passport';
-import { User } from 'src/decorators/current-user';
 import { ResponseMessage } from 'src/decorators/response_message.decorator';
 import EmailDto from './dto/email-format.dto';
 import { ConfigService } from '@nestjs/config';
-import appConfig, { APP_CONFIG_TOKEN, AppConfig } from 'src/config/app.config';
+import appConfig from 'src/config/app.config';
 import ResetPassword from './dto/reset-password.dto';
 import VerifyResetPasswordDto from './dto/verify-reset-password.dto';
-import googleOauthConfig from 'src/config/google-oauth.config';
 import { ProfileFacebook } from 'src/types/facebook-oaut.type';
 import { FacebookAuthGuard } from './gaurds/facebook-oauth.guard';
-interface User {
-  email: string;
-  firstName: string;
-  lastName: string;
-  gender?: string;
-}
 
 @Public()
 @ApiTags(Tag.AUTHENTICATE)
@@ -171,6 +162,22 @@ export class AuthController {
   @Post('admin/check-code')
   checkCodeAdmin(@Body() dataActive: ActiveAccount) {
     return this.authService.handleActive(dataActive);
+  }
+
+  @ApiOperation({
+    summary: 'Kiểm tra mã kích hoạt tài khoản (Admin)',
+  })
+  @Get('admin/verify-code')
+  async checkActivationCodeAdmin(@Query() dto: ActiveAccount) {
+    return this.authService.verifyActivationCode(dto, { isAdmin: true });
+  }
+
+  @ApiOperation({
+    summary: 'Kiểm tra mã kích hoạt tài khoản (User)',
+  })
+  @Get('verify-code')
+  async checkActivationCode(@Query() dto: ActiveAccount) {
+    return this.authService.verifyActivationCode(dto, { isAdmin: false });
   }
 
   @Post('retry-active')

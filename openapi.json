@@ -228,6 +228,78 @@
         ]
       }
     },
+    "/api/v1/auth/admin/verify-code": {
+      "get": {
+        "operationId": "AuthController_checkActivationCodeAdmin",
+        "summary": "Kiểm tra mã kích hoạt tài khoản (Admin)",
+        "parameters": [
+          {
+            "name": "codeId",
+            "required": true,
+            "in": "query",
+            "description": "Mã codeId của tài khoản",
+            "schema": {
+              "example": "1982",
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "query",
+            "description": "ID của người dùng lúc register trả về data",
+            "schema": {
+              "example": "07c95509-7d5d-4597-9423-a08d7006172a",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ]
+      }
+    },
+    "/api/v1/auth/verify-code": {
+      "get": {
+        "operationId": "AuthController_checkActivationCode",
+        "summary": "Kiểm tra mã kích hoạt tài khoản (User)",
+        "parameters": [
+          {
+            "name": "codeId",
+            "required": true,
+            "in": "query",
+            "description": "Mã codeId của tài khoản",
+            "schema": {
+              "example": "1982",
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "query",
+            "description": "ID của người dùng lúc register trả về data",
+            "schema": {
+              "example": "07c95509-7d5d-4597-9423-a08d7006172a",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AUTHENTICATE"
+        ]
+      }
+    },
     "/api/v1/auth/retry-active": {
       "post": {
         "operationId": "AuthController_retryActive",

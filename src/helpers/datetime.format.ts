@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import moment from 'moment';
 import { DATE_FORMAT } from 'src/constants';
 
@@ -33,6 +34,6 @@ export const convertDate = (
 };
 
 export const getExpireMinutes = (expireAt: Date): number => {
-  const diff = expireAt.getTime() - Date.now();
-  return Math.max(Math.floor(diff / 1000 / 60), 0);
+  const diff = dayjs(expireAt).diff(dayjs(), 'minute', true);
+  return Math.max(Math.ceil(diff), 0);
 };
