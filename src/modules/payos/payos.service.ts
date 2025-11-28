@@ -18,8 +18,8 @@ import { Voucher } from '../vourchers/entities/vourcher.entity';
 import { UserVourcher } from '../user_vourcher/entities/user_vourcher.entity';
 import appConfig from 'src/config/app.config';
 
-const return_success_url = `${appConfig().BE_URL}/purchase`;
-const cancel_url = `${appConfig().BE_URL}/purchase`;
+const return_success_url = `${appConfig().FE_URL_USER}/purchase`;
+const cancel_url = `${appConfig().FE_URL_USER}/purchase`;
 export interface ItemPayOsOrderDto {
   name: string; //Tên sản phẩm
   quantity: number; //Số lượng sản phẩm
@@ -37,7 +37,7 @@ export interface CreateOrderPayOsDto {
   buyerEmail?: string; //Email của người mua hàng. Thông tin dùng trong trường hợp tích hợp tạo hoá đơn điện tử.
   buyerPhone?: string; //Số điện thoại người mua hàng. Thông tin dùng trong trường hợp tích hợp tạo hoá đơn điện tử.
   buyerAddress?: string; //Địa chỉ của người mua hàng. Thông tin dùng trong trường hợp tích hợp tạo hoá đơn điện tử.
-  item?: ItemPayOsOrderDto[]; //Danh sách sản phẩm trong đơn hàng. Tối đa 20 sản phẩm.
+  items?: ItemPayOsOrderDto[]; //Danh sách sản phẩm trong đơn hàng. Tối đa 20 sản phẩm.
   expiredAt?: number; // Thời gian hết hạn của link thanh toán, là Unix Timestamp và kiểu Int32
 }
 
@@ -198,7 +198,7 @@ export class PayosService {
             (item) => ({
               name: item.skus.name,
               quantity: item.quantity,
-              price: item.skus.price_sold,
+              price: Number(item.skus.price_sold),
             }),
           );
           const orderCode = await this.generateUniqueNumberWithFindAll();
@@ -224,7 +224,7 @@ export class PayosService {
             createOrderDto.buyerPhone = user.phone;
           }
           if (orderDetail.length > 0) {
-            createOrderDto.item = orderDetail;
+            createOrderDto.items = orderDetail;
           }
           const expiredAt = this.generateExpiredAt();
           createOrderDto.expiredAt = expiredAt;
@@ -334,6 +334,7 @@ export class PayosService {
         },
       );
     } catch (error) {
+      console.error('Lỗi khi tạo order payos: ', error);
       throw error;
     }
   }
