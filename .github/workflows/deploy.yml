@@ -1,6 +1,6 @@
 name: Deploy NestJs App via FTP
 on:
-  push:
+  pull_request:
     branches:
       - main
 

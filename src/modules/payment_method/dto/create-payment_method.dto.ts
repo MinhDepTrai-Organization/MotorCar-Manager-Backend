@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsUrl } from 'class-validator';
 import { payment_method_name } from 'src/constants/order_status.enum';
 
 export class CreatePaymentMethodDto {
   @IsNotEmpty()
+  @IsEnum(payment_method_name)
   @ApiProperty({
     description: 'Name of the payment method',
     example: payment_method_name.COD,

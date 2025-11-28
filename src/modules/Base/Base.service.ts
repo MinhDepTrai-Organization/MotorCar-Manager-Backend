@@ -60,9 +60,6 @@ export class BaseService<
         relations: customRelations,
       });
 
-      if (!entities || entities.length === 0)
-        throw new NotFoundException(`No ${this.entityName} entity found`);
-
       const transformEntities = entities.map((e) =>
         transformDto(this.responseDto, e),
       );
