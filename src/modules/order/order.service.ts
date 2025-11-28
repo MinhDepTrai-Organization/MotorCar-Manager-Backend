@@ -325,7 +325,7 @@ export class OrderService {
         resOrder.orderDetails = saveOrderDetails;
 
         // Xóa cart item đã được sử dụng
-        await manager.remove(CartItem, cartItems);
+        // await manager.remove(CartItem, cartItems);
         return {
           status: 201,
           message: 'Order has been successfully created',
@@ -333,6 +333,7 @@ export class OrderService {
         };
       });
     } catch (e) {
+      console.error('Create order from cart failed: ', e);
       throw e;
     }
   }
