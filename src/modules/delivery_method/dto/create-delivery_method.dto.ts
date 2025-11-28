@@ -35,7 +35,6 @@ export class CreateDeliveryMethodDto {
 
   @IsNotEmpty()
   @IsInt()
-  @Min(100000, { message: 'Delivery fee is min 100000' })
   @ApiProperty({
     type: 'number',
     example: 100000,
