@@ -52,6 +52,7 @@ export class PaymentMethodService extends BaseService<
       ) {
         throw new ConflictException('Payment method name already exists');
       }
+      throw e;
     }
   }
 
